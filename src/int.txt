@@ -1,0 +1,39 @@
+declblock{
+	int i=0, ayush0, jain=0,arr[100];
+}
+
+codeblock{
+	y = 5;
+	x = y+ 5;
+	a = a + 3 - 5*12 - 99;
+	if x==3 or y==5 {
+		a = a + b;
+		b = x;
+	}
+	L1: if x==y {
+		a = a + b;
+		b = x;
+	}
+	else{
+		b=c*10;
+	}
+	if c==d{
+		x=x;
+	}
+	else{
+		b=c*10;
+	}
+	while i < 5 {
+		if x!=y and x==3{
+
+		}
+		else{
+
+		}
+	}
+	x = 5;
+	goto L1 if i < 5;
+	if 1 and 2<3{
+		y = 6;
+	}
+}

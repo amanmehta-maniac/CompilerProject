@@ -6,24 +6,125 @@
   void yyerror (char const *s);
 %}
 
-%token declaration_list
-%token statement_list
+
+%token DECL
+%token CODE
 %token NUMBER
-%token IDENTIFIER
+%token ID
+%token INT
 %token ETOK
+%token ARR
+%token EQEQ
+%token EQUAL
+%token IF
+%token ELSE	
+%token OR 		
+%token AND		
+%token NOTEQ
+%token WHILE
+%token GOTO
+%token LABEL
+%token READ
+%token TOPRINT
+%token PRINT
+
+
+
 %left '+'
 %left '*'
+%left '/'
+%left '-'
+%left '='
+%left OR
+%left AND
+%left EQEQ
+%left NOTEQ
+%left '<'
+%left '>'
 
 %%
 
-program:	decl_block code_block
+program:	declblock codeblock
 
-decl_block:  '{' declaration_list '}'
+declblock: DECL '{' Define '}' 
 
-code_block:  '{' statement_list '}'
+
+Define : INT X 
+	|
+
+
+X : ID ',' X
+	| ID '=' NUMBER ',' X
+	| last
+
+
+last : ID ';' Define
+	| ID '=' NUMBER ';' Define
+
+
+codeblock: CODE '{' Expr '}'
+
+
+Expr: Assign
+	| If
+	| While
+	| Goto
+	| Label
+	| Print
+	| Read
+	| 
+
+Label: LABEL Expr
+
+expr: expr '+' expr 
+	| expr '-' expr 
+	| expr '*' expr 
+	| expr '/' expr 
+	| ID 
+	| NUMBER 
+	| ARR
+
+
+Assign: ID '=' expr ';' Expr
+	| ARR '=' expr ';' Expr
+
+Type: EQEQ
+	| NOTEQ
+	| '<'
+	| '>'
+	| '<''='
+	| '>''='
+
+Type2: OR
+	| AND
+
+BoolExp: expr Type expr
+	| BoolExp Type2 BoolExp
+
+
+If:  IF BoolExp '{' Expr '}' Expr
+	| IF BoolExp '{' Expr '}' ELSE '{' Expr '}' Expr
+
+While : WHILE BoolExp '{' Expr '}' Expr
+
+Goto: GOTO ID IF BoolExp ';' Expr
+	| GOTO ID ';'
+
+Read: READ ID ';' Expr
+
+Print   :     PRINT TOPRINT Content
+                  |     PRINT ID Content
+                  |     PRINT ARR Content
+                  |     PRINT NUMBER Content
+
+Content           :      /* epsilon */
+                  |     ',' TOPRINT  Content
+                  |     ',' ID Content
+                  |     ',' ARR Content
+                  |     ',' NUMBER Content
 
 /*
-expr	: 	expr '+' expr 
+expr: 	expr '+' expr 
 	|	expr '*' expr 
 	| 	NUMBER
 	|	IDENTIFIER

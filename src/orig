@@ -1,0 +1,98 @@
+%{
+  #include <stdio.h>
+  #include <stdlib.h>
+  FILE *yyin;
+  int yylex (void);
+  void yyerror (char const *s);
+%}
+
+
+%token DECL
+%token CODE
+%token NUMBER
+%token ID
+%token INT
+%token ETOK
+%token ARR
+%token EQEQ
+%token IF
+%token ELSE	
+%token OR 		
+%token AND		
+
+%left '+'
+%left '*'
+%left '/'
+%left '='
+
+%%
+
+program:	decl_block code_block
+
+decl_block: DECL '{' Define '}' 
+
+
+Define : INT last
+	| INT X 
+	|
+
+
+X : ID ',' X
+	| ID '=' NUMBER ',' X
+	| ARR ',' X
+	| last
+
+
+last : ID ';' Define
+	| ID '=' NUMBER ';' Define
+	| ARR ';' Define
+
+
+code_block: CODE '{' Expr '}'
+
+Expr: Assign
+	| If
+	|
+
+expr: expr '+' expr 
+	| expr '-' expr 
+	| expr '*' expr 
+	| expr '/' expr 
+	| ID 
+	| NUMBER 
+
+Assign: ID '=' expr ';' Expr
+
+If:  IF expr EQEQ expr '{' Expr '}' 
+
+/*
+expr: 	expr '+' expr 
+	|	expr '*' expr 
+	| 	NUMBER
+	|	IDENTIFIER
+	;
+*/
+
+%%
+
+void yyerror (char const *s)
+{
+       fprintf (stderr, "%s\n", s);
+}
+
+int main(int argc, char *argv[])
+{
+	if (argc == 1 ) {
+		fprintf(stderr, "Correct usage: bcc filename\n");
+		exit(1);
+	}
+
+	if (argc > 2) {
+		fprintf(stderr, "Passing more arguments than necessary.\n");
+		fprintf(stderr, "Correct usage: bcc filename\n");
+	}
+
+	yyin = fopen(argv[1], "r");
+
+	yyparse();
+}
