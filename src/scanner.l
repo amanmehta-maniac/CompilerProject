@@ -1,5 +1,6 @@
 %{
 #include "parser.tab.h"
+#include "temp.h"
 
 %}
 
@@ -154,7 +155,7 @@ semicolon [;]
 void yyerror (char const *s)
 {
 	printf("ERROR at Statement number -> %d\n",yylineno);
-	/*error_flag = 1;*/
+	error_flag = 1;
     fprintf (stderr, "%s\n", s);
 }
 

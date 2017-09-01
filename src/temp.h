@@ -1,0 +1,1 @@
+extern int error_flag;

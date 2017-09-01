@@ -66,11 +66,12 @@
 
   #include <stdio.h>
   #include <stdlib.h>
+  int error_flag = 0;  
   FILE *yyin;
   int yylex (void);
   void yyerror (char const *s);
 
-#line 74 "parser.tab.c" /* yacc.c:339  */
+#line 75 "parser.tab.c" /* yacc.c:339  */
 
 # ifndef YY_NULLPTR
 #  if defined __cplusplus && 201103L <= __cplusplus
@@ -161,7 +162,7 @@ int yyparse (void);
 
 /* Copy the second part of user declarations.  */
 
-#line 165 "parser.tab.c" /* yacc.c:358  */
+#line 166 "parser.tab.c" /* yacc.c:358  */
 
 #ifdef short
 # undef short
@@ -463,12 +464,12 @@ static const yytype_uint8 yytranslate[] =
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    53,    53,    55,    58,    59,    61,    62,    63,    66,
-      67,    69,    71,    72,    73,    74,    75,    76,    77,    78,
-      79,    81,    83,    84,    85,    86,    87,    88,    89,    91,
-      92,    94,    95,    97,    98,    99,   100,   101,   102,   104,
-     105,   106,   108,   109,   111,   114,   115,   117,   118,   120,
-     122,   123,   124,   125,   127,   128,   129,   130,   131
+       0,    54,    54,    56,    59,    60,    62,    63,    64,    67,
+      68,    70,    72,    73,    74,    75,    76,    77,    78,    79,
+      80,    82,    84,    85,    86,    87,    88,    89,    90,    92,
+      93,    95,    96,    98,    99,   100,   101,   102,   103,   105,
+     106,   107,   109,   110,   112,   115,   116,   118,   119,   121,
+     123,   124,   125,   126,   128,   129,   130,   131,   132
 };
 #endif
 
@@ -1418,7 +1419,7 @@ yyreduce:
   switch (yyn)
     {
       
-#line 1422 "parser.tab.c" /* yacc.c:1646  */
+#line 1423 "parser.tab.c" /* yacc.c:1646  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -1653,13 +1654,14 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 145 "parser.y" /* yacc.c:1906  */
+#line 146 "parser.y" /* yacc.c:1906  */
 
 
 
 
 int main(int argc, char *argv[])
 {
+	error_flag=0;
 	if (argc == 1){
 		fprintf(stderr, "Correct usage: bcc filename\n");
 		exit(1);
@@ -1672,5 +1674,7 @@ int main(int argc, char *argv[])
 
 	yyin = fopen(argv[1], "r");
 	yyparse();
-
+	if(!error_flag){
+	printf("Done\n");
+	}
 }

@@ -1,6 +1,7 @@
 %{
   #include <stdio.h>
   #include <stdlib.h>
+  int error_flag = 0;  
   FILE *yyin;
   int yylex (void);
   void yyerror (char const *s);
@@ -148,6 +149,7 @@ expr: 	expr '+' expr
 
 int main(int argc, char *argv[])
 {
+	error_flag=0;
 	if (argc == 1){
 		fprintf(stderr, "Correct usage: bcc filename\n");
 		exit(1);
@@ -160,5 +162,7 @@ int main(int argc, char *argv[])
 
 	yyin = fopen(argv[1], "r");
 	yyparse();
-
+	if(!error_flag){
+	printf("Done\n");
+	}
 }
