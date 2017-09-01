@@ -1,6 +1,10 @@
 %{
 #include "parser.tab.h"
+
 %}
+
+%option yylineno
+
 dint	(int)
 equal	(=)
 space 	[\t\n ]
@@ -11,10 +15,12 @@ ELSE	(else)
 OR 		(or)
 AND		(and)
 while		(while)
-string	\"(\\.|[^\\"])*\"
+string_l	\"(\\.|[^\\"])*\"
 goto	(goto)
 number {digit}{digit}*
 semicolon [;] 
+
+
 
 %%
 "declblock"					return DECL;
@@ -25,19 +31,41 @@ semicolon [;]
 	return EQEQ;
 }
 {semicolon}{semicolon}+	{
-			printf("Token type: ERROR! multiple semicolon, Lexeme/Token Value: %s\n", yytext);  
+			printf(" Token type: ERROR! multiple semicolon, Lexeme/Token Value: %s \n",yytext);  
 			return 1;
 }
 {dint}{space} {  
 			printf("Token type: Datatype:int, Lexeme/Token Value: %s\n", yytext);  
 			return INT;
                 } 
+"for"	{
+			printf("Token type: Datatype: for, Lexeme/Token Value: %s\n", yytext);  
+										return FOR;
+		}
+
 {id}{space}*":" {
 			printf("Token type: Datatype:label, Lexeme/Token Value: %s\n", yytext);  
 			return LABEL;
 
 }
-{string} {
+
+"<=" {
+			printf("Token type: Datatype:label, Lexeme/Token Value: %s\n", yytext);  
+			return LTEQ;
+
+}
+
+">=" {
+			printf("Token type: Datatype:, Lexeme/Token Value: %s\n", yytext);  
+			return GTEQ;
+
+}
+"print"{space} {
+			printf("Token type: Datatype: print, Lexeme/Token Value: %s\n", yytext);  
+										return PRINT;
+
+}
+{string_l} {
 			printf("Token type: Datatype:string, Lexeme/Token Value: %s\n", yytext);  
 			return TOPRINT;
 
@@ -92,7 +120,7 @@ semicolon [;]
 }
 
 {id}		{
-			printf("Token type: ID, Lexeme/Token Value: %s\n", yytext);  
+			printf("%d, Token type: ID, Lexeme/Token Value: %s\n", yylineno,yytext);  
 			return ID;
                 } 
 {number}	{  
@@ -107,17 +135,27 @@ semicolon [;]
 "*"		return '*';
 "{"		return '{';
 "}"		return '}';
-";"		return ';';
+";"		{
+		yylineno += 1;
+		return ';';
+	}
 "," 	return ',';
 "=" 	return '=';
 "<"		return '<';
 ">"		return '>';
-
 
 [ \t]		{ /* Do nothing */ }
 .		{ 
 		  printf("Unexpected token encountered: %s\n", yytext); 
 		  return ETOK;
 		}
+
+%%
+void yyerror (char const *s)
+{
+	printf("ERROR at Statement number -> %d\n",yylineno);
+	/*error_flag = 1;*/
+    fprintf (stderr, "%s\n", s);
+}
 
 

@@ -64,7 +64,10 @@ extern int yydebug;
     LABEL = 274,
     READ = 275,
     TOPRINT = 276,
-    PRINT = 277
+    PRINT = 277,
+    FOR = 278,
+    LTEQ = 279,
+    GTEQ = 280
   };
 #endif
 
@@ -75,9 +78,23 @@ typedef int YYSTYPE;
 # define YYSTYPE_IS_DECLARED 1
 #endif
 
+/* Location type.  */
+#if ! defined YYLTYPE && ! defined YYLTYPE_IS_DECLARED
+typedef struct YYLTYPE YYLTYPE;
+struct YYLTYPE
+{
+  int first_line;
+  int first_column;
+  int last_line;
+  int last_column;
+};
+# define YYLTYPE_IS_DECLARED 1
+# define YYLTYPE_IS_TRIVIAL 1
+#endif
+
 
 extern YYSTYPE yylval;
-
+extern YYLTYPE yylloc;
 int yyparse (void);
 
 #endif /* !YY_YY_PARSER_TAB_H_INCLUDED  */
