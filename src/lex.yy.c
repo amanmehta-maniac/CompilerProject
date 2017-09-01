@@ -874,7 +874,7 @@ case 3:
 YY_RULE_SETUP
 #line 30 "scanner.l"
 {
-	printf ("lmao %s\n",yytext);
+	/*printf ("lmao %s\n",yytext);*/
 	return EQEQ;
 }
 	YY_BREAK
@@ -882,7 +882,7 @@ case 4:
 YY_RULE_SETUP
 #line 34 "scanner.l"
 {
-			printf(" Token type: ERROR! multiple semicolon, Lexeme/Token Value: %s \n",yytext);  
+			/*printf(" Token type: ERROR! multiple semicolon, Lexeme/Token Value: %s \n",yytext);  */
 			return 1;
 }
 	YY_BREAK
@@ -891,7 +891,7 @@ case 5:
 YY_RULE_SETUP
 #line 38 "scanner.l"
 {  
-			printf("Token type: Datatype:int, Lexeme/Token Value: %s\n", yytext);  
+			/*printf("Token type: Datatype:int, Lexeme/Token Value: %s\n", yytext);  */
 			return INT;
                 } 
 	YY_BREAK
@@ -899,8 +899,8 @@ case 6:
 YY_RULE_SETUP
 #line 42 "scanner.l"
 {
-			printf("Token type: Datatype: for, Lexeme/Token Value: %s\n", yytext);  
-										return FOR;
+			/*printf("Token type: Datatype: for, Lexeme/Token Value: %s\n", yytext);  */
+			return FOR;
 		}
 	YY_BREAK
 case 7:
@@ -908,7 +908,7 @@ case 7:
 YY_RULE_SETUP
 #line 47 "scanner.l"
 {
-			printf("Token type: Datatype:label, Lexeme/Token Value: %s\n", yytext);  
+			/*printf("Token type: Datatype:label, Lexeme/Token Value: %s\n", yytext);  */
 			return LABEL;
 
 }
@@ -917,7 +917,7 @@ case 8:
 YY_RULE_SETUP
 #line 53 "scanner.l"
 {
-			printf("Token type: Datatype:label, Lexeme/Token Value: %s\n", yytext);  
+			/*printf("Token type: Datatype:label, Lexeme/Token Value: %s\n", yytext);  */
 			return LTEQ;
 
 }
@@ -926,7 +926,7 @@ case 9:
 YY_RULE_SETUP
 #line 59 "scanner.l"
 {
-			printf("Token type: Datatype:, Lexeme/Token Value: %s\n", yytext);  
+			/*printf("Token type: Datatype:, Lexeme/Token Value: %s\n", yytext);  */
 			return GTEQ;
 
 }
@@ -936,8 +936,8 @@ case 10:
 YY_RULE_SETUP
 #line 64 "scanner.l"
 {
-			printf("Token type: Datatype: print, Lexeme/Token Value: %s\n", yytext);  
-										return PRINT;
+			/*printf("Token type: Datatype: print, Lexeme/Token Value: %s\n", yytext);  */
+			return PRINT;
 
 }
 	YY_BREAK
@@ -946,7 +946,7 @@ case 11:
 YY_RULE_SETUP
 #line 69 "scanner.l"
 {
-			printf("Token type: Datatype:string, Lexeme/Token Value: %s\n", yytext);  
+			/*printf("Token type: Datatype:string, Lexeme/Token Value: %s\n", yytext);  */
 			return TOPRINT;
 
 }
@@ -956,7 +956,7 @@ case 12:
 YY_RULE_SETUP
 #line 74 "scanner.l"
 {  
-			printf("Token type: Datatype:goto, Lexeme/Token Value: %s\n", yytext);  
+			/*printf("Token type: Datatype:goto, Lexeme/Token Value: %s\n", yytext);  */
 			return GOTO;
                 } 
 	YY_BREAK
@@ -964,7 +964,7 @@ case 13:
 YY_RULE_SETUP
 #line 78 "scanner.l"
 {
-			printf("Token type: Datatype:int, Lexeme/Token Value: %s\n", yytext);  
+			/*printf("Token type: Datatype:int, Lexeme/Token Value: %s\n", yytext);  */
 			return ID;
 		}
 	YY_BREAK
@@ -972,7 +972,7 @@ case 14:
 YY_RULE_SETUP
 #line 82 "scanner.l"
 {
-			printf("Token type: Datatype:int, Lexeme/Token Value: %s\n", yytext);  
+			/*printf("Token type: Datatype:int, Lexeme/Token Value: %s\n", yytext);  */
 			return ARR;
 		}
 	YY_BREAK
@@ -980,7 +980,7 @@ case 15:
 YY_RULE_SETUP
 #line 87 "scanner.l"
 {
-			printf("Token type: Datatype:int, Lexeme/Token Value: %s\n", yytext);  
+			/*printf("Token type: Datatype:int, Lexeme/Token Value: %s\n", yytext);  */
 			return READ;
 }
 	YY_BREAK
@@ -988,7 +988,7 @@ case 16:
 YY_RULE_SETUP
 #line 92 "scanner.l"
 {
-			printf("Token type: Number, Lexeme/Token Value: %s\n", yytext);  
+			/*printf("Token type: Number, Lexeme/Token Value: %s\n", yytext);  */
 			return IF; 
 
 }          
@@ -997,7 +997,7 @@ case 17:
 YY_RULE_SETUP
 #line 97 "scanner.l"
 {
-			printf("Token type: Number, Lexeme/Token Value: %s\n", yytext);  
+			/*printf("Token type: Number, Lexeme/Token Value: %s\n", yytext);  */
 			return ELSE; 
 
 }          
@@ -1006,7 +1006,7 @@ case 18:
 YY_RULE_SETUP
 #line 102 "scanner.l"
 {
-			printf("Token type: Number, Lexeme/Token Value: %s\n", yytext);  
+			/*printf("Token type: Number, Lexeme/Token Value: %s\n", yytext);  */
 			return OR; 
 
 }          
@@ -1015,7 +1015,7 @@ case 19:
 YY_RULE_SETUP
 #line 107 "scanner.l"
 {
-			printf("Token type: Number, Lexeme/Token Value: %s\n", yytext);  
+			/*printf("Token type: Number, Lexeme/Token Value: %s\n", yytext);  */
 			return AND; 
 
 }          
@@ -1024,7 +1024,7 @@ case 20:
 YY_RULE_SETUP
 #line 112 "scanner.l"
 {
-			printf("Token type: Number, Lexeme/Token Value: %s\n", yytext);  
+			/*printf("Token type: Number, Lexeme/Token Value: %s\n", yytext);  */
 			return NOTEQ; 
 
 }          
@@ -1033,7 +1033,7 @@ case 21:
 YY_RULE_SETUP
 #line 117 "scanner.l"
 {
-			printf("Token type: Number, Lexeme/Token Value: %s\n", yytext);  
+			/*printf("Token type: Number, Lexeme/Token Value: %s\n", yytext);  */
 			return WHILE; 
 
 }
@@ -1042,7 +1042,7 @@ case 22:
 YY_RULE_SETUP
 #line 123 "scanner.l"
 {
-			printf("%d, Token type: ID, Lexeme/Token Value: %s\n", yylineno,yytext);  
+			/*printf("%d, Token type: ID, Lexeme/Token Value: %s\n", yylineno,yytext);  */
 			return ID;
                 } 
 	YY_BREAK
@@ -1050,7 +1050,7 @@ case 23:
 YY_RULE_SETUP
 #line 127 "scanner.l"
 {  
-			printf("Token type: Number, Lexeme/Token Value: %s\n", yytext);  
+			/*printf("Token type: Number, Lexeme/Token Value: %s\n", yytext);  */
 			return NUMBER; 
                 }
 	YY_BREAK
@@ -1110,22 +1110,24 @@ return '>';
 case 34:
 YY_RULE_SETUP
 #line 148 "scanner.l"
-{ /* Do nothing */ }
+{ 
+		}
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 149 "scanner.l"
+#line 150 "scanner.l"
 { 
-		  printf("Unexpected token encountered: %s\n", yytext); 
+		  printf("Unexpected token encountered: %s\n", yytext);
+		  error_flag = 1;
 		  return ETOK;
 		}
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 154 "scanner.l"
+#line 156 "scanner.l"
 ECHO;
 	YY_BREAK
-#line 1129 "lex.yy.c"
+#line 1131 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2138,12 +2140,12 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 154 "scanner.l"
+#line 156 "scanner.l"
 
 
 void yyerror (char const *s)
 {
-	printf("ERROR at Statement number -> %d\n",yylineno);
+	printf("ERROR at (or near) Statement number -> %d\n",yylineno);
 	error_flag = 1;
     fprintf (stderr, "%s\n", s);
 }

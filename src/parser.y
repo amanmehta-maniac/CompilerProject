@@ -163,6 +163,6 @@ int main(int argc, char *argv[])
 	yyin = fopen(argv[1], "r");
 	yyparse();
 	if(!error_flag){
-	printf("Done\n");
+	printf("Done with no syntactic errors!\n");
 	}
 }

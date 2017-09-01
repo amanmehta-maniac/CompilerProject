@@ -1,5 +1,5 @@
 declblock{
-	int i=0, ayush0, jain=0,arr[100]; int x;
+	int i=0, ayush0, jain=0,arr[100]~; 
 }
 
 codeblock{
