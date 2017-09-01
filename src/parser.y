@@ -76,7 +76,7 @@ Expr: Assign
 	| Label
 	| Print 
 	| Read
-	| For
+	| For Expr
 	|
 
 Label: LABEL Expr
@@ -112,11 +112,11 @@ If:  IF BoolExp '{' Expr '}' Expr
 While : WHILE BoolExp '{' Expr '}' Expr
 
 
-For : FOR for_assign ',' NUMBER '{' Expr '}'
-   | FOR for_assign ',' NUMBER ',' NUMBER '{' Expr '}'
+For : FOR for_assign ',' NUMBER '{' Expr '}' 
+   | FOR for_assign ',' NUMBER ',' NUMBER '{' Expr '}' 
 
 Goto: GOTO ID IF BoolExp ';' Expr
-	| GOTO ID ';'
+	| GOTO ID ';' Expr
 
 Read: READ ID ';' Expr
 

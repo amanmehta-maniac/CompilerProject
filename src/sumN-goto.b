@@ -5,9 +5,7 @@ declblock{
 
 codeblock{
 	i = 0;
-
-
-L1:	data[i] = i ;
+	data[i] = i;
 	i = i + 1;
 	goto L1 if i < 100;
 	
