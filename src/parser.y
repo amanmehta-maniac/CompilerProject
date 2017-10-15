@@ -1,10 +1,16 @@
 %{
-  #include <stdio.h>
-  #include <stdlib.h>
-  int error_flag = 0;  
-  FILE *yyin;
-  int yylex (void);
-  void yyerror (char const *s);
+#include "ClassDefs.h"
+#include <bits/stdc++.h>
+
+  extern "C" int yylex();
+  extern "C" int yyparse();
+  extern "C" FILE *yyin;
+  extern "C" int line_num;
+  extern union Node yylval;
+  extern "C" int errors;
+  void yyerror(const char *s);
+  class Prog* start = NULL;
+  int errors=0;
 %}
 
 
@@ -17,7 +23,8 @@
 %token ID
 %token INT
 %token ETOK
-%token ARR
+%token ARR_ID
+%token ARR_NUM
 %token EQEQ
 %token EQUAL
 %token IF
@@ -51,21 +58,29 @@
 
 %%
 
-program:	declblock codeblock
+program: declblock codeblock {
+	$$ = new program($1,$2);
+}
 
 declblock: DECL '{' Define '}' 
 
 
-Define : INT X 
-	|
-
-X : ID ',' X
-	| ID '=' NUMBER ',' X
-	| last
+Define : INT X { $$ = new declblock(string($1), $2); }
+	| {$$ = new declblocks();}
 
 
-last : ID ';' Define
-	| ID '=' NUMBER ';' Define
+
+X : ID ',' X { $$->push_back($3) }
+	| ID '=' NUMBER ',' X { $$->push_back($3) }
+	| last { $$ = new Vars(); $$->push_back($1); }
+
+
+last : ID ';' Define { $$ = new Var(string("Normal"),string($1),string("NULL")); }
+	| ID '=' NUMBER ';' Define { $$ = new Var(string("Normal"),string($1),$3); }
+	| ARR_NUM ';' Define { $$ = new Var(string("Array")); }
+
+
+
 
 codeblock: CODE '{' Expr '}'
 
@@ -87,13 +102,13 @@ expr: expr '+' expr
 	| expr '/' expr 
 	| ID 
 	| NUMBER 
-	| ARR
+	| ARR_ID
 
 Assign: ID '=' expr ';' Expr
-	| ARR '=' expr ';' Expr
+	| ARR_ID '=' expr ';' Expr
 
 for_assign: ID '=' expr 
-	| ARR '=' expr
+	| ARR_ID '=' expr
 
 Type: EQEQ
 	| NOTEQ
@@ -122,13 +137,13 @@ Read: READ ID ';' Expr
 
 Print : PRINT TOPRINT Content 
       | PRINT ID Content 
-      | PRINT ARR Content
+      | PRINT ARR_ID Content
       | PRINT NUMBER Content
 
 Content	: ';' Expr/* epsilon */
       | ',' TOPRINT  Content
       | ',' ID Content
-      | ',' ARR Content
+      | ',' ARR_ID Content
       | ',' NUMBER Content
 
 

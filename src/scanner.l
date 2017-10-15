@@ -78,11 +78,11 @@ colon [:]
                 } 
 {id}"["{number}"]"	{
 			printf("Token type: Datatype:int, Lexeme/Token Value: %s\n", yytext);  
-			return ID;
+			return ARR_NUM;
 		}
 {id}"["{id}"]"	{
 			printf("Token type: Datatype:int, Lexeme/Token Value: %s\n", yytext);  
-			return ARR;
+			return ARR_ID;
 		}
 
 "read" {
