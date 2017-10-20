@@ -33,6 +33,7 @@ union Node{
 	class Stmts* stmts;
 	class Stmt* stmt;
 	class Expr* expr;
+
 	// class calloutArg* callout_arg;
 	// class calloutArgs* callout_args;
 	// class Params* parameters;
@@ -41,6 +42,10 @@ union Node{
 	// class methodCall* method_call;
 	// class Location* location;
 	class Assign* assign;
+	class forStmt* forst;
+	class ifElseStmt* ifst;
+	class whileStmt* whilest;
+	class printStmt* printst;
 	// class Literal* literal;
 	// class stringList* mylist;
 

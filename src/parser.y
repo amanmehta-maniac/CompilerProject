@@ -65,14 +65,22 @@
 %type <program> program
 %type <decls> declblocks
 %type <decl> declblock
+%type <codes> codeblocks
+%type <code> codeblock
 %type <vars> variables
 %type <var> variable
+%type <assign> Assign
+%type <ifst> If
+%type <forst> For
+%type <whilest> While
+%type <gotost> Goto
+
 
 
 %%
 
-program: DECL '{' declblocks '}'  {
-	$$ = new program($3,$3);
+program: DECL '{' declblocks '}' CODE '{' codeblocks '}' {
+	$$ = new program($3,$7);
 }
 
 declblocks : { $$ = new declblocks(); }
@@ -88,17 +96,17 @@ variables:
 variable: 
 	ID { $$ = new Var(string("Normal"), string($1)); }
 	| ID '[' NUMBER ']' { $$ = new Var(string("Array"),string($1)); }
-/*
-codeblocks:  
-	codeblocks codeblock ';' 
 
-codeblock: Assign 
-	| If 
-	| While 
-	| Goto 
-	| Label 
-	| Print 
-	| Read 
+codeblocks:  { $$ = new codeblocks(); } 
+	| codeblocks codeblock ';' { $$->push_back($2); s} 
+
+codeblock: Assign { $$ = $1; }
+	| If { $$ = $1; }
+	| While { $$ = $1; }
+	| Goto { $$ = $1; }
+	| Label { $$ = $1; }
+	| Print { $$ = $1; }
+	| Read { $$ = $1; }
 	| For 
 	|
 
@@ -122,8 +130,11 @@ Assign:
 	| ID '[' expr ']' SUBEQ expr ';'  {  $$ = new Assign(string($1), NULL, string($5), $6); }
 
 
+/*if you want to add more for_assign statements, currently only using i = 0 type */
 for_assign: ID '=' expr 
-
+/*	| ARR_ID '=' expr
+	| ARR_NUM '=' expr
+*/
 Type: EQEQ
 	| NOTEQ
 	| '<'
@@ -155,7 +166,7 @@ Print : PRINT TOPRINT Content
       | PRINT ARR_ID Content
       | PRINT NUMBER Content
 
-Content	: ';' codeblock epsilon 
+Content	: ';' codeblock /* epsilon */
       | ',' TOPRINT  Content
       | ',' ID Content
       | ',' ARR_ID Content
@@ -170,7 +181,6 @@ expr: 	expr '+' expr
 	|	IDENTIFIER
 	;
 */
-
 
 %%
 
