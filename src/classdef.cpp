@@ -43,9 +43,11 @@ union Node{
 	// class Location* location;
 	class Assign* assign;
 	class forStmt* forst;
-	class ifElseStmt* ifst;
+	class ifStmt* ifst;
 	class whileStmt* whilest;
 	class printStmt* printst;
+	class labelStmt* labelst;
+	class binExpr* binexpr;
 	// class Literal* literal;
 	// class stringList* mylist;
 
@@ -189,8 +191,10 @@ class Assign:public Stmt{
 private:
 	class Location* loc;/* location to which Assign is done */
 	class Expr* expr; /* what is assigned */
+	class 
 	string opr; /* how it is assigned = or -= or += */
 public:
+	Assign(class Location*, string, class Expr*);
 	Assign(class Location*, string, class Expr*);
 	void traverse();
 	Value* codegen();
@@ -211,27 +215,128 @@ public:
 };
 
 
-class ifElseStmt:public Stmt{
+class ifStmt:public Stmt{
 private:
-	class Expr* condition; /* condition for if statement */
-	class Block* if_block; /* if block */
-	class Block* else_block; /* else block */
+  string type;
+  class BoolExpr* cond;
+  class StatementList *if_part, *else_part;
 public:
-	ifElseStmt(class Expr*, class Block*, class Block*);
-	void traverse();
-	Value* codegen();
-	bool has_return(){
-		bool status = false;
-		if(if_block != NULL){
-			status = status | if_block->has_return();
-		}
-		if(else_block != NULL){
-			status = status | if_block->has_return();
-		}
-		return status;
-	}
+  IfStmt(string,class BoolExpr*,class StatementList*);
+  IfStmt(string,class BoolExpr*,class StatementList*,class StatementList*);
+};
+
+class whileStmt:public Stmt{
+private:
+  class BoolExpr* cond;
+  class StatementList *stmts;
+public:
+  whileStmt(class BoolExpr*,class StatementList*);
+};
+
+class gotoStmt:public Stmt{
+private:
+  string type,label;
+  class BoolExpr* cond;
+public:
+  gotoStmt(string,string);
+  gotoStmt(string,string,class BoolExpr*);
+};
+
+class forStmt:public Stmt{
+private:
+  class AssignExpr* intial;
+  class Terminal *end_cond, * inc_value;
+  class StatementList* stmts;
+public:
+  forStmt(class AssignExpr*,class Terminal*,class StatementList*);
+  forStmt(class AssignExpr*,class Terminal*,class Terminal*,class StatementList*);
 };
 
 
 
+class readStmt:public Stmt{
+private:
+  class Terminal* obj;
+public:
+  readStmt(class Terminal*);
+};
+
+class printStmt:public Stmt{
+private:
+  vector< class Terminal* > outs;
+public:
+  printStmt(){}
+  void push_back(class Terminal*);
+};
+
+class boolExpr:public astNode{
+private:
+  class Expr  *expr1,*expr2;
+  class boolExpr *bexpr1,*bexpr2;
+  string oper;
+public:
+  boolExpr(class Expr*,string,class Expr*);
+  boolExpr(class BoolExpr*,string,class BoolExpr*);
+};
+
+
+class last: public Expr{
+private:
+	string var; /* name used in location */
+	string location_type; /* Array or normal */
+	class Expr* expr; /* if it is array then we have the address */
+public:
+	last(string,string,class Expr*);
+	last(string,string);
+	void traverse();
+	string getVar();/* returns the var name */
+	bool is_array(); /* tells if its array or not */
+	class Expr* getExpr();
+	Value* codegen();
+}
+
+
+
+class Expr:public astNode{
+private: 
+	string op;
+protected:
+	exprType etype; /* Binary or unary or literal or location */
+public:
+	void setEtype(exprType x){etype = x;}
+	exprType getEtype(){return etype;}
+	virtual string toString(){}
+	virtual void traverse(){}
+	virtual Value* codegen(){}
+};
+
+class EnclExpr:public Expr{
+private:
+	class Expr* expr;
+public:
+	EnclExpr(class Expr*);
+	void traverse();
+	Value* codegen();
+};
+
+class unExpr:public Expr{
+private:
+	class Expr* body; /* body of expression */
+	string opr; /* Unary Expression */
+public:
+	unExpr(string,class Expr*);
+	void traverse();
+	Value* codegen();
+};
+
+class binExpr:public Expr{
+private:
+	class Expr* lhs; /* left hand side */
+	class Expr* rhs; /* right hand side */
+	string opr; /* operator in between */
+public:
+	binExpr(class Expr*, string, class Expr*);
+	void traverse();
+	Value* codegen();
+};
 

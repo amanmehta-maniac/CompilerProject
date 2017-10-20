@@ -24,10 +24,14 @@
 
 %token DECL
 %token CODE
-%token NUMBER
+%token <number> NUMBER
 %token <ch> INT
 %token <ch> ID
 %token ETOK
+%token <ch> '+'
+%token <ch> '-'
+%token <ch> '/'
+%token <ch> '*'
 %token ARR_ID
 %token ARR_NUM
 %token EQEQ
@@ -74,6 +78,11 @@
 %type <forst> For
 %type <whilest> While
 %type <gotost> Goto
+%type <printst> Print
+%type <readst> Read
+%type <binexpr> expr
+
+
 
 
 
@@ -98,36 +107,38 @@ variable:
 	| ID '[' NUMBER ']' { $$ = new Var(string("Array"),string($1)); }
 
 codeblocks:  { $$ = new codeblocks(); } 
-	| codeblocks codeblock ';' { $$->push_back($2); s} 
+	| codeblocks codeblock ';' { $$->push_back($2); } 
 
 codeblock: Assign { $$ = $1; }
 	| If { $$ = $1; }
 	| While { $$ = $1; }
 	| Goto { $$ = $1; }
-	| Label { $$ = $1; }
+/*	| Label { $$ = $1; } */
 	| Print { $$ = $1; }
 	| Read { $$ = $1; }
-	| For 
+	| For { $$ = $1; }
 	|
 
-Label: LABEL codeblock
+/*-Label: LABEL codeblock { }*/
 
-expr: expr '+' expr 
-	| expr '-' expr 
-	| expr '*' expr 
-	| expr '/' expr 
-	| ID 
-	| NUMBER 
-	| ID '[' expr ']'
+Last: ID {$$ = new last(string($1),string("Normal"));}
+	| ID '[' expr ']' { $$ = new Location(string($1),string("Array"),$3); }
+
+
+expr: expr '+' expr { $$ = new binExpr($1,string($2),$3); }
+	| expr '-' expr { $$ = new binExpr($1,string($2),$3); }
+	| expr '*' expr { $$ = new binExpr($1,string($2),$3); }
+	| expr '/' expr { $$ = new binExpr($1,string($2),$3); }
+	| NUMBER { $$ = $1; }
+	| Last { $$ = $1; }
+
+
 
 
 Assign: 
-	ID '=' expr ';'  { $$ = new Assign(string($1), NULL, string($2), $3); } 
-	| ID '[' expr ']' '=' expr ';'  {  $$ = new Assign(string($1), $3, string($5), $6); }
-	| ID ADDEQ expr ';'  { $$ = new Assign(string($1), string($2), $3); } 
-	| ID '[' expr ']' ADDEQ expr ';'  {  $$ = new Assign(string($1), NULL, string($5), $6); }
-	| ID SUBEQ expr ';'  { $$ = new Assign(string($1), string($2), $3); } 
-	| ID '[' expr ']' SUBEQ expr ';'  {  $$ = new Assign(string($1), NULL, string($5), $6); }
+	Last '=' expr ';'  { $$ = new Assign(string($1),string($2), $3); } 
+	| Last ADDEQ expr ';'  { $$ = new Assign(string($1), string($2), $3); } 
+	| Last SUBEQ expr ';'  { $$ = new Assign(string($1), string($2), $3); } 
 
 
 /*if you want to add more for_assign statements, currently only using i = 0 type */
@@ -146,8 +157,8 @@ BoolExp: expr Type expr
 	| BoolExp OR BoolExp
 	| BoolExp AND BoolExp
 
-If:  IF BoolExp '{' codeblock '}' { $$ = new ifElseStmt($2,$4,NULL); }
-	| IF BoolExp '{' codeblock '}' ELSE '{' codeblock '}' {$$ = new ifElseStmt($2,$4,$8);}
+If:  IF BoolExp '{' codeblock '}' { $$ = new ifStmt($2,$4); }
+	| IF BoolExp '{' codeblock '}' ELSE '{' codeblock '}' {$$ = new ifStmt($2,$4,$8);}
 
 While : WHILE BoolExp '{' codeblock '}' { $$ = new whileStmt($2,$4); }
 

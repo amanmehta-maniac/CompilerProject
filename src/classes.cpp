@@ -490,3 +490,78 @@ void codeblocks::push_back(class codeblock* decl){
   decl_list.push_back(decl);
   cnt++;
 }
+
+Value* binExpr::codegen(){
+  Value* left = lhs->codegen();
+  Value* right = rhs->codegen();
+  if(lhs->getEtype() == exprType::location){
+    left = Builder.CreateLoad(left);
+  }
+  if(rhs->getEtype() == exprType::location){
+    right = Builder.CreateLoad(right);
+  }
+  if(left == 0){
+    errors++;
+    return reportError::ErrorV("Error in left operand of " + opr);
+  }
+  else if(right == 0){
+    errors++;
+    return reportError::ErrorV("Error in right operand of " + opr);
+  }
+  Value* v;
+  if(opr == "+"){
+    v = Builder.CreateAdd(left,right,"addtmp");
+  }
+  else if (opr == "-"){
+    v = Builder.CreateSub(left,right,"subtmp");
+  }
+  else if (opr == "*"){
+    v = Builder.CreateMul(left,right,"multmp");
+  }
+  else if (opr == "/"){
+    v = Builder.CreateUDiv(left,right,"divtmp");
+  }
+  else if(opr == "%"){
+    v = Builder.CreateURem(left,right,"modtmp");
+  }
+  else if (opr == "<"){
+    v = Builder.CreateICmpULT(left,right,"ltcomparetmp");
+  }
+  else if (opr == ">"){
+    v = Builder.CreateICmpUGT(left,right,"gtcomparetmp");
+  }
+  else if (opr == "<="){
+    v = Builder.CreateICmpULE(left,right,"lecomparetmp");
+  }
+  else if (opr == ">="){
+    v = Builder.CreateICmpUGE(left,right,"gecomparetmp");
+  }
+  else if (opr == "=="){
+    v = Builder.CreateICmpEQ(left,right,"equalcomparetmp");
+  }
+  else if (opr == "!="){
+    v = Builder.CreateICmpNE(left,right,"notequalcomparetmp");
+  }
+  return v;
+}
+
+binExpr::binExpr(class Expr* lhs, string opr, class Expr* rhs){
+  this->lhs = lhs;
+  this->rhs = rhs;
+  this->opr = opr;
+  this->etype = exprType::binary;
+}
+
+
+last::last(string var, string location_type, class Expr* expr){
+  this->var = var;
+  this->location_type = location_type;
+  this->expr = expr;
+  this->etype = exprType::location;
+}
+
+last::last(string var, string location_type){
+  this->var = var;
+  this->location_type = location_type;
+  this->etype = exprType::location;
+}
