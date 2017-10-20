@@ -110,3 +110,383 @@ void printTabs(){
   }
 }
 
+program::program(string name, class declblock* decls, class codeblocks* methods){
+  this->methods = methods;
+  this->name = name;
+  this->fields = decls;
+}
+
+Value* program::codegen(){
+  Value *V = ConstantInt::get(getGlobalContext(), APInt(32,0));
+  V = fields->codegen();
+  V = methods->codegen();
+  return V;
+}
+void program::generateCode(){
+  cout << "Generating LLVM IR Code\n";
+  TheModule->dump();
+}
+
+void program::traverse(){
+  TBS;
+  out << "<program>\n";
+  tabs_needed++;
+  fields->traverse();
+  methods->traverse();
+  tabs_needed--;
+  TBS;
+  out << "</program>\n";
+}
+
+
+declblocks::declblocks(){
+  this->cnt = 0;
+}
+
+void declblocks::push_back(class declblock* var){
+  decl_list.push_back(var);
+  cnt++;
+}
+
+Value* declblocks::codegen(){
+  for(int i = 0; i < decl_list.size(); i++){
+    decl_list[i]->codegen();
+  }
+  Value* v = ConstantInt::get(getGlobalContext(), APInt(32,1));
+  return v;
+}
+
+void declblocks::traverse(){
+  TBS;
+  out << "<field_declarations count=\"" << cnt << "\">\n";
+  tabs_needed++;
+  for (int i = 0; i < decl_list.size(); i++){
+    decl_list[i]->traverse();
+  }
+  tabs_needed--;
+  TBS;
+  out << "</field_declarations>\n";
+
+}
+
+declblock::declblock(string dataType, class Vars* vars){
+  this->dataType = dataType;
+  this->var_list = vars->getVarsList();
+  for(int i = 0; i < var_list.size(); i++){
+    var_list[i]->setDataType(dataType);
+  }
+}
+
+vector<class Var*> declblock::getVarsList(){
+  return var_list;
+}
+
+Value* declblock::codegen(){
+  for(int i = 0; i < var_list.size(); i++){
+    /* Allocate one location of global variable for all */
+    class Var* var = var_list[i];
+    llvm::Type *ty;
+    if(dataType == "int"){
+      ty = Type::getInt32Ty(Context);
+    }
+    else if(dataType == "boolean"){
+      ty = Type::getInt1Ty(Context);
+    }
+    if(var->isArray()){
+      ArrayType* arrType = ArrayType::get(ty,var->getLength());
+      PointerType* PointerTy_1 = PointerType::get(ArrayType::get(ty,var->getLength()),0);
+      GlobalVariable* gv = new GlobalVariable(*TheModule,arrType,false,GlobalValue::ExternalLinkage,0,var->getName());
+      gv->setInitializer(ConstantAggregateZero::get(arrType));
+    }
+    else{
+      PointerType* ptrTy = PointerType::get(ty,0);
+      GlobalVariable* gv = new GlobalVariable(*TheModule,ptrTy , false,GlobalValue::ExternalLinkage, 0, var->getName());
+    }
+  }
+  Value* v = ConstantInt::get(getGlobalContext(), APInt(32,1));
+  return v;
+}
+
+void declblock::traverse(){
+  for(int i = 0;  i < var_list.size(); i++){
+    var_list[i]->traverse();
+  }
+}
+
+declblock::declblock(string dataType, class Vars* vars){
+  this->dataType = dataType;
+  this->var_list = vars->getVarsList();
+  for(int i = 0; i < var_list.size(); i++){
+    var_list[i]->setDataType(dataType);
+  }
+}
+
+
+
+Value* declblock::codegen(){
+  for(int i = 0; i < var_list.size(); i++){
+    /* Allocate one location of global variable for all */
+    class Var* var = var_list[i];
+    llvm::Type *ty;
+    if(dataType == "int"){
+      ty = Type::getInt32Ty(Context);
+    }
+    else if(dataType == "boolean"){
+      ty = Type::getInt1Ty(Context);
+    }
+    if(var->isArray()){
+      ArrayType* arrType = ArrayType::get(ty,var->getLength());
+      PointerType* PointerTy_1 = PointerType::get(ArrayType::get(ty,var->getLength()),0);
+      GlobalVariable* gv = new GlobalVariable(*TheModule,arrType,false,GlobalValue::ExternalLinkage,0,var->getName());
+      gv->setInitializer(ConstantAggregateZero::get(arrType));
+    }
+    else{
+      PointerType* ptrTy = PointerType::get(ty,0);
+      GlobalVariable* gv = new GlobalVariable(*TheModule,ptrTy , false,GlobalValue::ExternalLinkage, 0, var->getName());
+    }
+  }
+  Value* v = ConstantInt::get(getGlobalContext(), APInt(32,1));
+  return v;
+}
+
+Stmts::Stmts(){
+  this->cnt = 0;
+}
+
+bool Stmts::has_return(){
+  for(int i = 0; i < stmts.size(); i++){
+    if(stmts[i]->has_return()){
+      return true;
+    }
+  }
+  return false;
+}
+
+Value* Stmts::codegen(){
+  Value* v = ConstantInt::get(getGlobalContext(), llvm::APInt(32,1));
+  for(int i = 0; i < stmts.size(); i++){
+    v = stmts[i]->codegen();
+  }
+  return v;
+}
+
+void Stmts::traverse(){
+  TBS;
+  out << "<statements count=\"" << cnt << "\">\n";
+  tabs_needed++;
+  for(int i = 0; i < stmts.size(); i++){
+    stmts[i]->traverse();
+  }
+  tabs_needed--;
+  TBS;
+  out << "</statements>\n";
+}
+
+
+void Stmts::push_back(class Stmt* stmt){
+  stmts.push_back(stmt);
+  cnt++;
+}
+
+vector<class Var*> Vars::getVarsList(){
+  return vars_list;
+}
+
+void Vars::push_back(class Var* var){
+  vars_list.push_back(var);
+  cnt++;
+}
+
+Value* Vars::codegen(){
+  Value *V = ConstantInt::get(getGlobalContext(), APInt(32,0));
+  return V;
+}
+
+Var::Var(string declType, string name, unsigned int length){
+  this->declType = declType;
+  this->name = name;
+  this->length = length;
+}
+
+Var::Var(string declType, string name){
+  this->declType = declType;
+  this->name = name;
+}
+
+bool Var::isArray(){
+  return (declType.compare("Array") == 0);
+}
+
+void Var::setDataType(string datatype){
+  /* Sets the data type for the variable */
+  this->dataType = datatype;
+}
+
+string Var::getName(){
+  return name;
+}
+
+Value* Var::codegen(){
+  Value *V = ConstantInt::get(getGlobalContext(), APInt(32,0));
+  return V;
+}
+
+void Var::traverse(){
+  TBS;
+  out << declType << endl;
+  TBS;
+  out << "<declaration name=\"" << name << "\" type=\"" << dataType << "\" ";
+  if(declType.compare("Array") == 0){
+    out << "size=\"" << length << "\" ";
+  }
+  out << "/>\n";
+}
+
+
+
+void codeblock::traverse(){
+  TBS;
+  out << "<method_declaration return_type=\"" << type << " name=\""<< name << "\">\n";
+  tabs_needed++;
+  arg_list->traverse();
+  body->traverse();
+  tabs_needed--;
+  TBS;
+  out << "</method_declaration>\n";
+}
+
+
+codeblock::codeblock(string ret_type, string name, class methodArgs* args, class Block* block){
+  this->type = ret_type;
+  this->name = name;
+  this->arg_list = args;
+  this->body = block;
+}
+
+Function* codeblock::codegen(){
+  vector<string> argNames;
+  vector<string> argTypes;
+  vector<class methodArg*> args = arg_list->getArgList();
+  vector<Type*> arguments;
+  int arg_size = args.size();
+  for(int i = 0; i < args.size(); i++){
+    /* Iterate over the arguments and get the types of them in llvm */
+    string arg_type = args[i]->getType();
+    string arg_name = args[i]->getName();
+    if(arg_type == "int"){
+      arguments.push_back(Type::getInt32Ty(getGlobalContext()));
+    }
+    else if (arg_type == "boolean"){
+      arguments.push_back(Type::getInt1Ty(getGlobalContext()));
+    }
+    else{
+      errors++;
+      reportError::ErrorV("Arguments can only be int or boolean");
+      return 0;
+    }
+    argTypes.push_back(string(arg_type));
+    argNames.push_back(string(arg_name));
+  }
+
+  Type *returnType;
+  /* Get the return Type */
+  if(type == "int"){
+    returnType = Type::getInt32Ty(getGlobalContext());
+  }
+  else if(type == "boolean"){
+    returnType = Type::getInt1Ty(getGlobalContext());
+  }
+  else if (type == "void"){
+    returnType = Type::getVoidTy(getGlobalContext());
+  }
+  else{
+    errors++;
+    reportError::ErrorV("Invalid Return Type for " + name + ". Return Type can only be int or boolean or bool");
+    return 0;
+  }
+
+  /* Get the function type and create a Function */
+  FunctionType *FT = llvm::FunctionType::get(returnType, arguments, false);
+  Function *F = llvm::Function::Create(FT, Function::ExternalLinkage, name, TheModule);
+
+  /* Iterate through arguments and set the Names for them */
+
+  unsigned Idx = 0;
+  for (Function::arg_iterator AI = F->arg_begin(); Idx != arg_size; ++AI, ++Idx) {
+    AI->setName(argNames[Idx]);
+  }
+
+  /* Create a New block for this Function */
+  BasicBlock *BB = BasicBlock::Create(getGlobalContext(), "entry", F);
+  Builder.SetInsertPoint(BB);
+  Idx = 0;
+
+  /* Allocate memory for the arguments passed */
+  for (auto &Arg : F->args()) {
+    if(Idx == arg_size){break;}
+    AllocaInst *Alloca = CreateEntryBlockAlloca(F, argNames[Idx],argTypes[Idx]);
+    Builder.CreateStore(&Arg, Alloca);
+
+    NamedValues[argNames[Idx]] = Alloca;
+    Idx++;
+  }
+
+  Value *RetVal = body->codegen();
+  if(RetVal){
+    /* make this the return value */
+    if(type != "void")
+    Builder.CreateRet(RetVal);
+    else
+    Builder.CreateRetVoid();
+    /* Verify the function */
+    verifyFunction(*F);
+    return F;
+  }
+  /* Error Condition */
+  F->eraseFromParent();
+  return 0;
+}
+
+void codeblocks::traverse(){
+  TBS;
+  out << "<method_declarations count=\"" << cnt << "\">\n";
+  tabs_needed++;
+  for (int i = 0; i < decl_list.size(); i++){
+    decl_list[i]->traverse();
+  }
+  tabs_needed--;
+  TBS;
+  out << "</method_declarations>\n";
+
+}
+
+
+Value* codeblocks::codegen(){
+  Value *V = ConstantInt::get(getGlobalContext(), APInt(32,0));
+  for(int i = 0; i < decl_list.size(); i++){
+    V = decl_list[i]->codegen();
+  }
+  return V;
+}
+
+void codeblocks::traverse(){
+  TBS;
+  out << "<method_declarations count=\"" << cnt << "\">\n";
+  tabs_needed++;
+  for (int i = 0; i < decl_list.size(); i++){
+    decl_list[i]->traverse();
+  }
+  tabs_needed--;
+  TBS;
+  out << "</method_declarations>\n";
+
+}
+
+codeblocks::codeblocks(){
+  this->cnt = 0;
+}
+
+void codeblocks::push_back(class codeblock* decl){
+  decl_list.push_back(decl);
+  cnt++;
+}

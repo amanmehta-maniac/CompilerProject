@@ -9,7 +9,7 @@
   extern union Node yylval;
   extern "C" int errors;
   void yyerror(const char *s);
-  class Prog* start = NULL;
+  class program* start = NULL;
   int errors=0;
 %}
 
@@ -17,11 +17,16 @@
 %locations
 
 /*%option yylineno*/
+%start program
+
+
+
+
 %token DECL
 %token CODE
 %token NUMBER
-%token ID
-%token INT
+%token <ch> INT
+%token <ch> ID
 %token ETOK
 %token ARR_ID
 %token ARR_NUM
@@ -39,7 +44,8 @@
 %token TOPRINT
 %token PRINT
 %token FOR
-
+%token SUBEQ
+%token ADDEQ
 
 
 %left EQEQ
@@ -56,45 +62,47 @@
 %left '/'
 %left '='
 
+%type <program> program
+%type <decls> declblocks
+%type <decl> declblock
+%type <vars> variables
+%type <var> variable
+
+
 %%
 
-program: declblock codeblock {
-	$$ = new program($1,$2);
+program: DECL '{' declblocks '}'  {
+	$$ = new program($3,$3);
 }
 
-declblock: DECL '{' Define '}' 
+declblocks : { $$ = new declblocks(); }
+	| declblocks declblock ';' { $$->push_back($2); }
 
+declblock:
+	INT variables { $$ = new declblock(string($1),$2); }
 
-Define : INT X { $$ = new declblock(string($1), $2); }
-	| {$$ = new declblocks();}
+variables:
+	variable { $$ = new Vars(); $$->push_back($1); }
+	| variables ',' variable { $$->push_back($3); }
 
+variable: 
+	ID { $$ = new Var(string("Normal"), string($1)); }
+	| ID '[' NUMBER ']' { $$ = new Var(string("Array"),string($1)); }
+/*
+codeblocks:  
+	codeblocks codeblock ';' 
 
-
-X : ID ',' X { $$->push_back($3) }
-	| ID '=' NUMBER ',' X { $$->push_back($3) }
-	| last { $$ = new Vars(); $$->push_back($1); }
-
-
-last : ID ';' Define { $$ = new Var(string("Normal"),string($1),string("NULL")); }
-	| ID '=' NUMBER ';' Define { $$ = new Var(string("Normal"),string($1),$3); }
-	| ARR_NUM ';' Define { $$ = new Var(string("Array")); }
-
-
-
-
-codeblock: CODE '{' Expr '}'
-
-Expr: Assign
-	| If
-	| While
-	| Goto
-	| Label
+codeblock: Assign 
+	| If 
+	| While 
+	| Goto 
+	| Label 
 	| Print 
-	| Read
-	| For Expr
+	| Read 
+	| For 
 	|
 
-Label: LABEL Expr
+Label: LABEL codeblock
 
 expr: expr '+' expr 
 	| expr '-' expr 
@@ -102,13 +110,19 @@ expr: expr '+' expr
 	| expr '/' expr 
 	| ID 
 	| NUMBER 
-	| ARR_ID
+	| ID '[' expr ']'
 
-Assign: ID '=' expr ';' Expr
-	| ARR_ID '=' expr ';' Expr
+
+Assign: 
+	ID '=' expr ';'  { $$ = new Assign(string($1), NULL, string($2), $3); } 
+	| ID '[' expr ']' '=' expr ';'  {  $$ = new Assign(string($1), $3, string($5), $6); }
+	| ID ADDEQ expr ';'  { $$ = new Assign(string($1), string($2), $3); } 
+	| ID '[' expr ']' ADDEQ expr ';'  {  $$ = new Assign(string($1), NULL, string($5), $6); }
+	| ID SUBEQ expr ';'  { $$ = new Assign(string($1), string($2), $3); } 
+	| ID '[' expr ']' SUBEQ expr ';'  {  $$ = new Assign(string($1), NULL, string($5), $6); }
+
 
 for_assign: ID '=' expr 
-	| ARR_ID '=' expr
 
 Type: EQEQ
 	| NOTEQ
@@ -121,32 +135,31 @@ BoolExp: expr Type expr
 	| BoolExp OR BoolExp
 	| BoolExp AND BoolExp
 
-If:  IF BoolExp '{' Expr '}' Expr
-	| IF BoolExp '{' Expr '}' ELSE '{' Expr '}' Expr
+If:  IF BoolExp '{' codeblock '}' { $$ = new ifElseStmt($2,$4,NULL); }
+	| IF BoolExp '{' codeblock '}' ELSE '{' codeblock '}' {$$ = new ifElseStmt($2,$4,$8);}
 
-While : WHILE BoolExp '{' Expr '}' Expr
+While : WHILE BoolExp '{' codeblock '}' { $$ = new whileStmt($2,$4); }
 
 
-For : FOR for_assign ',' NUMBER '{' Expr '}' 
-   | FOR for_assign ',' NUMBER ',' NUMBER '{' Expr '}' 
+For : 
+	FOR ID '=' expr ',' NUMBER '{' codeblock '}' { $$ = new forStmt($2,$4,$6,NULL,$8)}
+   | FOR ID '=' expr ',' NUMBER ',' NUMBER '{' codeblock '}' { $$ = new forStmt($2,$4,$6,$8,10)}
 
-Goto: GOTO ID IF BoolExp ';' Expr
-	| GOTO ID ';' Expr
+Goto: GOTO ID IF BoolExp ';' codeblock
+	| GOTO ID ';' codeblock
 
-Read: READ ID ';' Expr
+Read: READ ID ';' codeblock
 
 Print : PRINT TOPRINT Content 
       | PRINT ID Content 
       | PRINT ARR_ID Content
       | PRINT NUMBER Content
 
-Content	: ';' Expr/* epsilon */
+Content	: ';' codeblock epsilon 
       | ',' TOPRINT  Content
       | ',' ID Content
       | ',' ARR_ID Content
       | ',' NUMBER Content
-
-
 
 
 
@@ -157,6 +170,7 @@ expr: 	expr '+' expr
 	|	IDENTIFIER
 	;
 */
+
 
 %%
 

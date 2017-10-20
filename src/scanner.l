@@ -1,6 +1,15 @@
 %{
 #include "parser.tab.h"
 #include "temp.h"
+  extern "C" int yylex();
+  extern "C" int yyparse();
+  extern "C" FILE *yyin;
+  extern "C" int line_num;
+  extern union Node yylval;
+  extern "C" int errors;
+  
+  class program* start = NULL;
+  int errors=0;
 
 %}
 
@@ -76,15 +85,6 @@ colon [:]
 			printf("Token type: Datatype:goto, Lexeme/Token Value: %s\n", yytext);  
 			return GOTO;
                 } 
-{id}"["{number}"]"	{
-			printf("Token type: Datatype:int, Lexeme/Token Value: %s\n", yytext);  
-			return ARR_NUM;
-		}
-{id}"["{id}"]"	{
-			printf("Token type: Datatype:int, Lexeme/Token Value: %s\n", yytext);  
-			return ARR_ID;
-		}
-
 "read" {
 			printf("Token type: Datatype:int, Lexeme/Token Value: %s\n", yytext);  
 			return READ;
@@ -123,12 +123,14 @@ colon [:]
 
 {id}		{
 			printf("%d, Token type: ID, Lexeme/Token Value: %s\n", yylineno,yytext);  
+			yylval.ch = strdup(yytext);
 			return ID;
-                } 
+            } 
 {number}	{  
 			printf("Token type: Number, Lexeme/Token Value: %s\n", yytext);  
+			yylval.number = atoi(yytext);
 			return NUMBER; 
-                }
+}
 
 
 
@@ -141,7 +143,11 @@ colon [:]
 		yylineno += 1;
 		return ';';
 	}
+"]"		return ']';
+"["		return '[';
 "," 	return ',';
+"+=" 	return ADDEQ;
+"-=" 	return SUBEQ;
 "=" 	return '=';
 "<"		return '<';
 ">"		return '>';
