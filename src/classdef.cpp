@@ -40,7 +40,7 @@ union Node{
 	// class methodArgs* method_args;
 	// class methodArg* method_arg;
 	// class methodCall* method_call;
-	// class Location* location;
+	class last* last;
 	class Assign* assign;
 	class forStmt* forst;
 	class ifStmt* ifst;
@@ -189,13 +189,13 @@ public:
 
 class Assign:public Stmt{
 private:
-	class Location* loc;/* location to which Assign is done */
+	class last* loc;/* location to which Assign is done */
 	class Expr* expr; /* what is assigned */
 	class 
 	string opr; /* how it is assigned = or -= or += */
 public:
-	Assign(class Location*, string, class Expr*);
-	Assign(class Location*, string, class Expr*);
+	Assign(class last*, string, class Expr*);
+	Assign(class last*, string, class Expr*);
 	void traverse();
 	Value* codegen();
 };
@@ -218,38 +218,38 @@ public:
 class ifStmt:public Stmt{
 private:
   string type;
-  class BoolExpr* cond;
-  class StatementList *if_part, *else_part;
+  class boolExpr* cond;
+  class stmt *if_part, *else_part;
 public:
-  IfStmt(string,class BoolExpr*,class StatementList*);
-  IfStmt(string,class BoolExpr*,class StatementList*,class StatementList*);
+  IfStmt(class boolExpr*,class Stmts*);
+  IfStmt(class boolExpr*,class Stmts*,class Stmts*);
 };
 
 class whileStmt:public Stmt{
 private:
-  class BoolExpr* cond;
-  class StatementList *stmts;
+  class boolExpr* cond;
+  class Stmts *stmts;
 public:
-  whileStmt(class BoolExpr*,class StatementList*);
+  whileStmt(class boolExpr*,class Stmts*);
 };
 
 class gotoStmt:public Stmt{
 private:
   string type,label;
-  class BoolExpr* cond;
+  class boolExpr* cond;
 public:
   gotoStmt(string,string);
-  gotoStmt(string,string,class BoolExpr*);
+  gotoStmt(string,string,class boolExpr*);
 };
 
 class forStmt:public Stmt{
 private:
   class AssignExpr* intial;
   class Terminal *end_cond, * inc_value;
-  class StatementList* stmts;
+  class Stmts* stmts;
 public:
-  forStmt(class AssignExpr*,class Terminal*,class StatementList*);
-  forStmt(class AssignExpr*,class Terminal*,class Terminal*,class StatementList*);
+  forStmt(class AssignExpr*,class Terminal*,class Stmts*);
+  forStmt(class AssignExpr*,class Terminal*,class Terminal*,class Stmts*);
 };
 
 
@@ -276,7 +276,7 @@ private:
   string oper;
 public:
   boolExpr(class Expr*,string,class Expr*);
-  boolExpr(class BoolExpr*,string,class BoolExpr*);
+  boolExpr(class boolExpr*,string,class boolExpr*);
 };
 
 

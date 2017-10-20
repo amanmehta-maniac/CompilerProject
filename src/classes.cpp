@@ -288,6 +288,106 @@ void Stmts::push_back(class Stmt* stmt){
   cnt++;
 }
 
+ifStmt::ifStmt(class Expr* cond, class Block* block1, class Block* block2){
+  this->stype = stmtType::NonReturn;
+  this->condition = cond;
+  this->if_block = block1;
+  this->else_block = block2;
+}
+
+
+Value* ifStmt::codegen(){
+  Value *cond = condition->codegen();
+  if(cond == 0){
+    errors++;
+    return reportError::ErrorV("Invalid Expression in the IF");
+  }
+  Function* TheFunction = Builder.GetInsertBlock()->getParent();
+  BasicBlock *ifBlock = BasicBlock::Create(Context, "if", TheFunction);
+  BasicBlock *elseBlock = BasicBlock::Create(Context, "else");
+  BasicBlock *nextBlock = BasicBlock::Create(Context, "ifcont");
+  Builder.CreateCondBr(cond, ifBlock, elseBlock);
+
+  Builder.SetInsertPoint(ifBlock);
+
+  Value* ifval  = if_block->codegen();
+  if(ifval == 0){
+    return 0;
+  }
+
+  Builder.CreateBr(nextBlock);
+  ifBlock = Builder.GetInsertBlock();
+
+  TheFunction->getBasicBlockList().push_back(elseBlock);
+  Builder.SetInsertPoint(elseBlock);
+  Value* elseval;
+  if(else_block != NULL)
+  {
+    elseval = else_block->codegen();
+    if(elseval == 0){
+      return 0;
+    }
+  }
+  Builder.CreateBr(nextBlock);
+  elseBlock = Builder.GetInsertBlock();
+  TheFunction->getBasicBlockList().push_back(nextBlock);
+  Builder.SetInsertPoint(nextBlock);
+
+  bool phi_if = false,phi_else = false;
+  if(if_block->has_return()){
+    phi_if = true;
+  }
+  if(else_block != NULL && else_block->has_return()){
+      phi_else = true;
+  }
+  if(phi_if||phi_else){
+    PHINode *PN = Builder.CreatePHI(Type::getInt32Ty(getGlobalContext()), 2,"iftmp");
+    if(phi_if)
+      PN->addIncoming(ifval, ifBlock);
+    if(phi_else){
+        PN->addIncoming(elseval, elseBlock);
+    }
+    return PN;
+  }
+
+  Value *V = ConstantInt::get(getGlobalContext(), APInt(32,0));
+  return V;
+}
+
+void ifStmt::traverse(){
+  TBS;
+  out << "<if_else_statement>\n";
+  tabs_needed++;
+  TBS;
+  out << "<condition>\n";
+  tabs_needed++;
+  condition->traverse();
+  tabs_needed--;
+  TBS;
+  out << "</condition>\n";
+  TBS;
+  out << "<ifblock>\n";
+  tabs_needed++;
+  if_block->traverse();
+  tabs_needed--;
+  TBS;
+  out << "</ifblock>\n";
+  if(else_block!=NULL){
+    TBS;
+    out << "<else_block>\n";
+    tabs_needed++;
+    else_block->traverse();
+    tabs_needed--;
+    TBS;
+    out << "</elseblock>\n";
+  }
+  tabs_needed--;
+  TBS;
+  out << "</if_else_statement>\n";
+}
+
+
+
 vector<class Var*> Vars::getVarsList(){
   return vars_list;
 }

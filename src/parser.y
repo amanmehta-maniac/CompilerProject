@@ -29,6 +29,7 @@
 %token <ch> ID
 %token ETOK
 %token <ch> '+'
+%token <ch> '='
 %token <ch> '-'
 %token <ch> '/'
 %token <ch> '*'
@@ -48,8 +49,8 @@
 %token TOPRINT
 %token PRINT
 %token FOR
-%token SUBEQ
-%token ADDEQ
+%token <ch> SUBEQ
+%token <ch> ADDEQ
 
 
 %left EQEQ
@@ -81,6 +82,9 @@
 %type <printst> Print
 %type <readst> Read
 %type <binexpr> expr
+%type <last> Last
+%type <boolExpr> BoolExp
+
 
 
 
@@ -117,13 +121,12 @@ codeblock: Assign { $$ = $1; }
 	| Print { $$ = $1; }
 	| Read { $$ = $1; }
 	| For { $$ = $1; }
-	|
 
 /*-Label: LABEL codeblock { }*/
 
+
 Last: ID {$$ = new last(string($1),string("Normal"));}
 	| ID '[' expr ']' { $$ = new Location(string($1),string("Array"),$3); }
-
 
 expr: expr '+' expr { $$ = new binExpr($1,string($2),$3); }
 	| expr '-' expr { $$ = new binExpr($1,string($2),$3); }
@@ -153,7 +156,7 @@ Type: EQEQ
 	| '<''='
 	| '>''='
 
-BoolExp: expr Type expr
+BoolExp: expr Type expr 
 	| BoolExp OR BoolExp
 	| BoolExp AND BoolExp
 
