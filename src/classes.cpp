@@ -5,6 +5,8 @@
 using namespace std;
 using namespace llvm;
 
+map< string, int > symtab;
+
 #define TBS printTabs()
 #define outs(x)cout<<#x<<" is "<<x<<endl
 ofstream out("XML_Vistor.txt");
@@ -35,85 +37,13 @@ static AllocaInst *CreateEntryBlockAlloca(Function *TheFunction, const std::stri
   return Alloca;
 }
 
-string getOperation(string opr){
-  if(opr.compare("+") == 0){
-    return string("Addition");
-  }
-  else if (opr.compare("-") == 0){
-    return string("Subtraction");
-  }
-  else if(opr.compare("*")  == 0){
-    return string("Multiplication");
-  }
-  else if (opr.compare("/")  == 0){
-    return string("Division");
-  }
-  else if (opr.compare("%") == 0){
-    return string("Modulus");
-  }
-  else if (opr.compare("<") == 0){
-    return string("Less_than");
-  }
-  else if (opr.compare(">") == 0){
-    return string("Greater_than");
-  }
-  else if (opr.compare("<=") == 0){
-    return string("Less_than_Equal_to");
-  }
-  else if (opr.compare(">=") == 0){
-    return string("Greater_than_Equal_to");
-  }
-  else if (opr.compare("==") == 0){
-    return string("Compare_equal");
-  }
-  else if (opr.compare("&&") == 0){
-    return string("Conditional_and");
-  }
-  else if (opr.compare("||") == 0){
-    return string("Conditional_or");
-  }
-  else if (opr.compare("=") == 0){
-    return string("Equal_assign");
-  }
-  else if (opr.compare("-=") == 0){
-    return string("Subequal_assign");
-  }
-  else if (opr.compare("=") == 0){
-    return string("Addequal_assign");
-  }
-}
 
-string replace_newline(string str){
-  size_t index = 0;
-  string search="\\n";
-//  cout << "Called replace for " << str << endl;
-  while (true) {
-    /* Locate the substring to replace. */
-    index = str.find(search, index);
-    if (index == std::string::npos) break;
 
-    /* Make the replacement. */
-  //  cout << "Replaced\n";
-    str.erase( index, search.length() );
-    str.insert( index, "\n" );
-
-    /* Advance index forward so the next iteration doesn't pick it up as well. */
-    index += 1;
-  }
-  return str;
-}
-
-void printTabs(){
-  for(int i = 0; i < tabs_needed; i++){
-    for(int j = 0; j < tab_width; j++)
-    out << " ";
-  }
-}
-
-program::program(string name, class declblock* decls, class codeblocks* methods){
-  this->methods = methods;
-  this->name = name;
-  this->fields = decls;
+program::program(class declblocks* decls, class codeblocks* methods){
+  this->codes = methods;
+  this->decls = decls;
+  cout<<"program finished\n";
+  
 }
 
 void program::generateCode(){
@@ -121,16 +51,6 @@ void program::generateCode(){
   TheModule->dump();
 }
 
-void program::traverse(){
-  TBS;
-  out << "<program>\n";
-  tabs_needed++;
-  fields->traverse();
-  methods->traverse();
-  tabs_needed--;
-  TBS;
-  out << "</program>\n";
-}
 
 
 declblocks::declblocks(){
@@ -143,20 +63,8 @@ void declblocks::push_back(class declblock* var){
 }
 
 
-void declblocks::traverse(){
-  TBS;
-  out << "<field_declarations count=\"" << cnt << "\">\n";
-  tabs_needed++;
-  for (int i = 0; i < decl_list.size(); i++){
-    decl_list[i]->traverse();
-  }
-  tabs_needed--;
-  TBS;
-  out << "</field_declarations>\n";
 
-}
-
-declblock::declblock(string dataType, class Vars* vars){
+declblock::declblock(class Vars* vars){
   this->dataType = dataType;
   this->var_list = vars->getVarsList();
   for(int i = 0; i < var_list.size(); i++){
@@ -169,94 +77,18 @@ vector<class Var*> declblock::getVarsList(){
 }
 
 
-void declblock::traverse(){
-  for(int i = 0;  i < var_list.size(); i++){
-    var_list[i]->traverse();
-  }
+
+ifStmt::ifStmt(class boolExpr* cond, class codeblocks* block1){
+  this->cond = cond;
+  this->if_part = block1;
+  // cout<<cond->expr1->lastVar->var<<" "<<cond->expr2->number<<"\n";
 }
 
-declblock::declblock(string dataType, class Vars* vars){
-  this->dataType = dataType;
-  this->var_list = vars->getVarsList();
-  for(int i = 0; i < var_list.size(); i++){
-    var_list[i]->setDataType(dataType);
-  }
+ifStmt::ifStmt(class boolExpr* cond, class codeblocks* block1, class codeblocks* block2){
+  this->cond = cond;
+  this->if_part = block1;
+  this->else_part = block2;
 }
-
-
-Stmts::Stmts(){
-  this->cnt = 0;
-}
-
-bool Stmts::has_return(){
-  for(int i = 0; i < stmts.size(); i++){
-    if(stmts[i]->has_return()){
-      return true;
-    }
-  }
-  return false;
-}
-
-
-void Stmts::traverse(){
-  TBS;
-  out << "<statements count=\"" << cnt << "\">\n";
-  tabs_needed++;
-  for(int i = 0; i < stmts.size(); i++){
-    stmts[i]->traverse();
-  }
-  tabs_needed--;
-  TBS;
-  out << "</statements>\n";
-}
-
-
-void Stmts::push_back(class Stmt* stmt){
-  stmts.push_back(stmt);
-  cnt++;
-}
-
-ifStmt::ifStmt(class Expr* cond, class Block* block1, class Block* block2){
-  this->stype = stmtType::NonReturn;
-  this->condition = cond;
-  this->if_block = block1;
-  this->else_block = block2;
-}
-
-
-
-void ifStmt::traverse(){
-  TBS;
-  out << "<if_else_statement>\n";
-  tabs_needed++;
-  TBS;
-  out << "<condition>\n";
-  tabs_needed++;
-  condition->traverse();
-  tabs_needed--;
-  TBS;
-  out << "</condition>\n";
-  TBS;
-  out << "<ifblock>\n";
-  tabs_needed++;
-  if_block->traverse();
-  tabs_needed--;
-  TBS;
-  out << "</ifblock>\n";
-  if(else_block!=NULL){
-    TBS;
-    out << "<else_block>\n";
-    tabs_needed++;
-    else_block->traverse();
-    tabs_needed--;
-    TBS;
-    out << "</elseblock>\n";
-  }
-  tabs_needed--;
-  TBS;
-  out << "</if_else_statement>\n";
-}
-
 
 
 vector<class Var*> Vars::getVarsList(){
@@ -265,6 +97,7 @@ vector<class Var*> Vars::getVarsList(){
 
 void Vars::push_back(class Var* var){
   vars_list.push_back(var);
+  // cout<<var->name<<" ";
   cnt++;
 }
 
@@ -272,6 +105,12 @@ Var::Var(string declType, string name, unsigned int length){
   this->declType = declType;
   this->name = name;
   this->length = length;
+}
+
+Var::Var(string declType, string name, string flag, int init_val){
+  this->declType = declType;
+  this->name = name;
+  this->init_val = init_val;
 }
 
 Var::Var(string declType, string name){
@@ -293,74 +132,51 @@ string Var::getName(){
 }
 
 
-void Var::traverse(){
-  TBS;
-  out << declType << endl;
-  TBS;
-  out << "<declaration name=\"" << name << "\" type=\"" << dataType << "\" ";
-  if(declType.compare("Array") == 0){
-    out << "size=\"" << length << "\" ";
-  }
-  out << "/>\n";
-}
-
-
-
-void codeblock::traverse(){
-  TBS;
-  out << "<method_declaration return_type=\"" << type << " name=\""<< name << "\">\n";
-  tabs_needed++;
-  arg_list->traverse();
-  body->traverse();
-  tabs_needed--;
-  TBS;
-  out << "</method_declaration>\n";
-}
-
-
-codeblock::codeblock(string ret_type, string name, class methodArgs* args, class Block* block){
-  this->type = ret_type;
-  this->name = name;
-  this->arg_list = args;
-  this->body = block;
-}
-
-
-void codeblocks::traverse(){
-  TBS;
-  out << "<method_declarations count=\"" << cnt << "\">\n";
-  tabs_needed++;
-  for (int i = 0; i < decl_list.size(); i++){
-    decl_list[i]->traverse();
-  }
-  tabs_needed--;
-  TBS;
-  out << "</method_declarations>\n";
-
-}
-
-
-
-void codeblocks::traverse(){
-  TBS;
-  out << "<method_declarations count=\"" << cnt << "\">\n";
-  tabs_needed++;
-  for (int i = 0; i < decl_list.size(); i++){
-    decl_list[i]->traverse();
-  }
-  tabs_needed--;
-  TBS;
-  out << "</method_declarations>\n";
-
+codeblock::codeblock(){
 }
 
 codeblocks::codeblocks(){
   this->cnt = 0;
 }
 
-void codeblocks::push_back(class codeblock* decl){
-  decl_list.push_back(decl);
+void codeblocks::push_back(class codeblock* code){
+  code_list.push_back(code);
   cnt++;
+}
+
+void codeblocks::push_back(class codeblock* code, string label){
+  code_list.push_back(code);
+  code->label = label;
+  cnt++;
+}
+
+
+
+Expr::Expr(string expr_type, class binExpr* binex){
+  this->expr_type = expr_type;
+  this->binexpr = binex;
+}
+
+Expr::Expr(string expr_type, class last* temp){
+  this->expr_type = expr_type;
+  this->lastVar = temp;
+}
+
+Expr::Expr(string expr_type, int num){
+  this->expr_type = expr_type;
+  this->number = num;
+}
+
+boolExpr::boolExpr(class Expr* e1,class OperandType* oper_type,class Expr* e2){
+  this->expr1 = e1;
+  this->expr2 = e2;
+  this->oper_type = oper_type;
+
+}
+boolExpr::boolExpr(class boolExpr* bexpr1,string oper,class boolExpr* bexpr2){
+  this->bexpr1 = bexpr1;
+  this->bexpr2 = bexpr2;
+  this->oper = oper;
 }
 
 
@@ -368,19 +184,240 @@ binExpr::binExpr(class Expr* lhs, string opr, class Expr* rhs){
   this->lhs = lhs;
   this->rhs = rhs;
   this->opr = opr;
-  this->etype = exprType::binary;
 }
 
 
-last::last(string var, string location_type, class Expr* expr){
+last::last(string var, string last_type, class Expr* expr){
   this->var = var;
-  this->location_type = location_type;
+  this->last_type = last_type;
   this->expr = expr;
-  this->etype = exprType::location;
 }
 
-last::last(string var, string location_type){
+last::last(string var, string last_type){
   this->var = var;
-  this->location_type = location_type;
-  this->etype = exprType::location;
+  this->last_type = last_type;
 }
+
+gotoStmt::gotoStmt(string type, string label){
+  this->type = type;
+  this->label = label;
+}
+
+gotoStmt::gotoStmt(string type, string label, class boolExpr* cond){
+  this->type = type;
+  this->label = label;
+  this->cond = cond;
+}
+
+whileStmt::whileStmt(class boolExpr* cond,class codeblocks* stmts){
+  this->cond = cond;
+  this->stmts = stmts;
+  // cout<<"yo while\n";
+}
+
+OperandType::OperandType(string op){
+  this->op = op;
+}
+
+unitClass::unitClass(string type, string name){
+  this->type = type;
+  this->name = name;
+}
+
+unitClass::unitClass(string type, int value){
+  this->type = type;
+  this->value = value;
+}
+
+forStmt::forStmt(string i, class Expr* initial, class unitClass* endcond, class codeblocks* stmts){
+  this->i = i;
+  this->initial = initial;
+  this->endcond = endcond;
+  this->stmts = stmts;
+
+}
+forStmt::forStmt(string i, class Expr* initial, class unitClass* endcond, class unitClass* incval, class codeblocks* stmts){
+  this->i = i;
+  this->initial = initial;
+  this->endcond = endcond;
+  this->incval = incval;
+  this->stmts = stmts;
+
+}
+
+
+readStmt::readStmt(class unitClass* toread){
+  this->toread = toread;
+
+}
+
+Assign::Assign(class last* loc, string opr, class Expr* expr){
+  this->loc = loc;
+  this->opr = opr;
+  this->expr = expr;
+  // cout<<loc->var<<opr<<expr->number<<"\n";
+}
+
+content::content(string toprint){
+  this->toprint = toprint;
+}
+
+content::content(int num){
+  this->num = num;
+}
+
+content::content(class last* lastval){
+  this->lastval = lastval;
+  // cout<<"lastval: "<<lastval->var;
+}
+
+void printStmt::push_back(class content* var){
+  outs.push_back(var);
+}
+
+int Interpreter::visit(class program* obj){
+  cout<<"in prog\n";
+  Interpreter *it = new Interpreter();
+  obj->decls->accept(it);
+  obj->codes->accept(it);
+  return 0;
+}
+
+int Interpreter::visit(class declblocks* obj){
+  Interpreter *it = new Interpreter();
+  for(auto i: obj->decl_list){
+    i->accept(it);
+  }
+  return 0;
+}
+
+int Interpreter::visit(class declblock* obj){
+  Interpreter *it = new Interpreter();
+  for(auto i: obj->var_list){
+    i->accept(it);
+  }
+  return 0;
+
+}
+
+
+int Interpreter::visit(class Vars* obj){
+  Interpreter *it = new Interpreter();
+  for(auto i: obj->vars_list){
+    i->accept(it);
+  }
+  return 0;
+}
+
+int Interpreter::visit(class Var* obj){
+
+  if(obj->declType == "Normal"){
+    symtab[obj->name] = 0;
+  }
+  if(obj->declType == "NormalInit" or obj->declType == "NormalInit2"){
+    symtab[obj->name] = obj->init_val;
+  }
+  if(obj->declType == "Array"){
+    for(int i = 0; i< obj->length; i++){
+      symtab[to_string(i) + obj->name] = 0;
+      
+    }
+  }
+  for(auto i: symtab){
+    // cout<<i.first<<" "<<i.second<<"\n";
+  }
+  return 0;
+}
+
+int Interpreter::visit(class codeblocks* e){
+  Interpreter *it = new Interpreter();
+  for(auto i: e->code_list){
+    i->accept(it);
+  }
+  return 0;
+}
+// int Interpreter::visit(class codeblock* e){
+//   Interpreter *it = new Interpreter();
+//   return 0;
+// }
+int Interpreter::visit(class Expr* e){
+  Interpreter *it = new Interpreter();
+  if(e->expr_type=="num") return e->number;
+  else if(e->expr_type=="last") {
+    return e->lastVar->accept(it);
+  }
+  else{
+    return e->binexpr->accept(it);
+  }
+  return 0;
+}
+int Interpreter::visit(class boolExpr* e){
+  Interpreter *it = new Interpreter();
+  return 0;
+}
+int Interpreter::visit(class OperandType* e){
+  Interpreter *it = new Interpreter();
+  return 0;
+}
+int Interpreter::visit(class unitClass* e){
+  Interpreter *it = new Interpreter();
+
+  return 0;
+}
+int Interpreter::visit(class last* e){
+  Interpreter *it = new Interpreter();
+  if(e->last_type == "Normal"){
+    return symtab[e->var];
+  }
+  else{
+    return 0;
+  }
+  return 0;
+}
+int Interpreter::visit(class codeblock* e){
+  return 0;
+}
+int Interpreter::visit(class Assign* e){
+  Interpreter *it = new Interpreter();
+  symtab[e->loc->var] = e->expr->accept(it);
+  return 0;
+}
+int Interpreter::visit(class forStmt* e){
+  Interpreter *it = new Interpreter();
+  return 0;
+}
+int Interpreter::visit(class gotoStmt* e){
+  Interpreter *it = new Interpreter();
+  return 0;
+}
+int Interpreter::visit(class readStmt* e){
+  Interpreter *it = new Interpreter();
+  return 0;
+}
+int Interpreter::visit(class printStmt* e){
+  Interpreter *it = new Interpreter();
+  return 0;
+}
+int Interpreter::visit(class ifStmt* e){
+  Interpreter *it = new Interpreter();
+  return 0;
+}
+int Interpreter::visit(class whileStmt* e){
+  Interpreter *it = new Interpreter();
+  return 0;
+}
+int Interpreter::visit(class labelStmt* e){
+  Interpreter *it = new Interpreter();
+  return 0;
+}
+int Interpreter::visit(class binExpr* e){
+  Interpreter *it = new Interpreter();
+  return 0;
+}
+int Interpreter::visit(class content* e){
+  Interpreter *it = new Interpreter();
+  return 0;
+}
+
+
+
