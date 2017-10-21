@@ -57,7 +57,7 @@ cb "]"
 
 }
 "println"{space} {
-			return PRINT;
+			return PRINTLN;
 
 }
 {string_l} {
@@ -91,8 +91,6 @@ cb "]"
 			return WHILE; 
 
 }
-
-
 
 "!=" {
 			yylval.ch = strdup(yytext);

@@ -51,8 +51,6 @@ void program::generateCode(){
   TheModule->dump();
 }
 
-
-
 declblocks::declblocks(){
   this->cnt = 0;
 }
@@ -78,14 +76,16 @@ vector<class Var*> declblock::getVarsList(){
 
 
 
-ifStmt::ifStmt(class boolExpr* cond, class codeblocks* block1){
+ifStmt::ifStmt(string type, class boolExpr* cond, class codeblocks* block1){
   this->cond = cond;
+  this->type = type;
   this->if_part = block1;
   // cout<<cond->expr1->lastVar->var<<" "<<cond->expr2->number<<"\n";
 }
 
-ifStmt::ifStmt(class boolExpr* cond, class codeblocks* block1, class codeblocks* block2){
+ifStmt::ifStmt(string type, class boolExpr* cond, class codeblocks* block1, class codeblocks* block2){
   this->cond = cond;
+  this->type = type;
   this->if_part = block1;
   this->else_part = block2;
 }
@@ -167,14 +167,16 @@ Expr::Expr(string expr_type, int num){
   this->number = num;
 }
 
-boolExpr::boolExpr(class Expr* e1,class OperandType* oper_type,class Expr* e2){
+boolExpr::boolExpr(string boolType, class Expr* e1,class OperandType* oper_type,class Expr* e2){
   this->expr1 = e1;
+  this->boolType = boolType;
   this->expr2 = e2;
   this->oper_type = oper_type;
 
 }
-boolExpr::boolExpr(class boolExpr* bexpr1,string oper,class boolExpr* bexpr2){
+boolExpr::boolExpr(string boolType, class boolExpr* bexpr1,string oper,class boolExpr* bexpr2){
   this->bexpr1 = bexpr1;
+  this->boolType = boolType;
   this->bexpr2 = bexpr2;
   this->oper = oper;
 }
@@ -234,6 +236,8 @@ forStmt::forStmt(string i, class Expr* initial, class unitClass* endcond, class 
   this->initial = initial;
   this->endcond = endcond;
   this->stmts = stmts;
+  this->forType = 1;
+
 
 }
 forStmt::forStmt(string i, class Expr* initial, class unitClass* endcond, class unitClass* incval, class codeblocks* stmts){
@@ -242,11 +246,12 @@ forStmt::forStmt(string i, class Expr* initial, class unitClass* endcond, class 
   this->endcond = endcond;
   this->incval = incval;
   this->stmts = stmts;
+  this->forType = 2;
 
 }
 
 
-readStmt::readStmt(class unitClass* toread){
+readStmt::readStmt(class last* toread){
   this->toread = toread;
 
 }
@@ -259,14 +264,17 @@ Assign::Assign(class last* loc, string opr, class Expr* expr){
 }
 
 content::content(string toprint){
+  this->type=1;
   this->toprint = toprint;
 }
 
 content::content(int num){
+  this->type=2;
   this->num = num;
 }
 
 content::content(class last* lastval){
+  this->type=3;
   this->lastval = lastval;
   // cout<<"lastval: "<<lastval->var;
 }
@@ -280,6 +288,7 @@ int Interpreter::visit(class program* obj){
   Interpreter *it = new Interpreter();
   obj->decls->accept(it);
   obj->codes->accept(it);
+  
   return 0;
 }
 
@@ -323,9 +332,11 @@ int Interpreter::visit(class Var* obj){
       
     }
   }
+  cout<<"\n";
   for(auto i: symtab){
-    // cout<<i.first<<" "<<i.second<<"\n";
+    cout<<i.first<<" "<<i.second<<"\n";
   }
+
   return 0;
 }
 
@@ -353,10 +364,44 @@ int Interpreter::visit(class Expr* e){
 }
 int Interpreter::visit(class boolExpr* e){
   Interpreter *it = new Interpreter();
+  if(e->boolType=="expr"){
+    if(e->oper_type->op=="=="){
+      return e->expr1->accept(it) == e->expr2->accept(it);
+    }
+    if(e->oper_type->op=="!="){
+      return e->expr1->accept(it) != e->expr2->accept(it);
+    }
+    if(e->oper_type->op==">="){
+      return e->expr1->accept(it) >= e->expr2->accept(it);
+    }
+    if(e->oper_type->op=="<="){
+      return e->expr1->accept(it) <= e->expr2->accept(it);
+    }
+    if(e->oper_type->op==">"){
+      return e->expr1->accept(it) > e->expr2->accept(it);
+    }
+    if(e->oper_type->op=="<"){
+      return e->expr1->accept(it) < e->expr2->accept(it);
+    }
+  }
+  else{
+    if(e->oper=="OR"){
+      return (e->bexpr1->accept(it) || e->bexpr2->accept(it));
+    }
+    if(e->oper=="AND"){
+      return (e->bexpr1->accept(it) && e->bexpr2->accept(it));
+    }
+  }
   return 0;
 }
 int Interpreter::visit(class OperandType* e){
   Interpreter *it = new Interpreter();
+  if(e->op=="==") return 1;
+  if(e->op=="!=") return 2;
+  if(e->op==">=") return 3;
+  if(e->op=="<=") return 4;
+  if(e->op==">") return 5;
+  if(e->op=="<") return 6;
   return 0;
 }
 int Interpreter::visit(class unitClass* e){
@@ -370,7 +415,7 @@ int Interpreter::visit(class last* e){
     return symtab[e->var];
   }
   else{
-    return 0;
+    return e->expr->accept(it);
   }
   return 0;
 }
@@ -379,11 +424,56 @@ int Interpreter::visit(class codeblock* e){
 }
 int Interpreter::visit(class Assign* e){
   Interpreter *it = new Interpreter();
-  symtab[e->loc->var] = e->expr->accept(it);
+  if(e->opr=="=") symtab[e->loc->var] = e->expr->accept(it);
+  else if(e->opr=="+=") symtab[e->loc->var] += e->expr->accept(it);
+  else symtab[e->loc->var] -= e->expr->accept(it);
+  cout<<"assign\n";
+  for(auto i: symtab){
+    cout<<i.first<<" "<<i.second<<"\n";
+  }
   return 0;
 }
 int Interpreter::visit(class forStmt* e){
   Interpreter *it = new Interpreter();
+  if(e->forType==1){
+    cout<<"fortype==1\n";
+    symtab[e->i] = e->initial->accept(it);
+    if(e->endcond->type=="id"){
+      while(symtab[e->i]<symtab[e->endcond->name]){
+        e->stmts->accept(it);
+        symtab[e->i] = symtab[e->i] + 1;
+      }
+    }
+    else{
+      while(symtab[e->i]<e->endcond->value){
+        e->stmts->accept(it);
+        symtab[e->i] = symtab[e->i] + 1;
+      }
+
+    }
+  }
+  else{
+    cout<<"fortype==2\n";
+    symtab[e->i] = e->initial->accept(it);
+    if(e->endcond->type=="id"){
+      while(symtab[e->i]<symtab[e->endcond->name]){
+        e->stmts->accept(it);
+        if(e->incval->type=="id") symtab[e->i] = symtab[e->i] + symtab[e->incval->name];
+        if(e->incval->type!="id") symtab[e->i] = symtab[e->i] + e->incval->value;
+      }
+    }
+    else{
+      while(symtab[e->i]<e->endcond->value){
+        e->stmts->accept(it);
+        if(e->incval->type=="id") symtab[e->i] = symtab[e->i] + symtab[e->incval->name];
+        if(e->incval->type!="id") symtab[e->i] = symtab[e->i] + e->incval->value;
+      }
+    }
+  }
+  cout<<"after FOR\n";
+  for(auto i: symtab){
+    cout<<i.first<<" "<<i.second<<"\n";
+  }
   return 0;
 }
 int Interpreter::visit(class gotoStmt* e){
@@ -392,30 +482,76 @@ int Interpreter::visit(class gotoStmt* e){
 }
 int Interpreter::visit(class readStmt* e){
   Interpreter *it = new Interpreter();
+  if(e->toread->last_type=="Normal") symtab[e->toread->var] = e->toread->accept(it);
+  else symtab[to_string(e->toread->expr->accept(it)) + e->toread->var] = e->toread->accept(it);
   return 0;
 }
 int Interpreter::visit(class printStmt* e){
   Interpreter *it = new Interpreter();
+  cout<<"e_type: "<<e->type<<"\n";
+  if(e->type==2){
+    for(auto i: e->outs) {
+      i->accept(it);
+      cout<<"\n";
+    }
+  }
+  else{
+    for(auto i: e->outs) {
+      i->accept(it);
+    }
+    cout<<"\n";
+  }
   return 0;
 }
+
+
 int Interpreter::visit(class ifStmt* e){
   Interpreter *it = new Interpreter();
+  if(e->cond->accept(it) || e->type=="if"){
+    e->if_part->accept(it);
+  }
+  else{
+    e->else_part->accept(it);
+  }
   return 0;
 }
 int Interpreter::visit(class whileStmt* e){
   Interpreter *it = new Interpreter();
+  while(e->cond->accept(it)){
+    e->stmts->accept(it);
+  }
   return 0;
 }
+
+
 int Interpreter::visit(class labelStmt* e){
   Interpreter *it = new Interpreter();
   return 0;
 }
 int Interpreter::visit(class binExpr* e){
   Interpreter *it = new Interpreter();
+  if(e->opr=="+"){
+    return e->lhs->accept(it) + e->rhs->accept(it);
+  }
+  if(e->opr=="-"){
+    return e->lhs->accept(it) - e->rhs->accept(it);
+  }
+  if(e->opr=="*"){
+    return e->lhs->accept(it) * e->rhs->accept(it);
+  }
+  if(e->opr=="/"){
+    return e->lhs->accept(it) / e->rhs->accept(it);
+  }
   return 0;
 }
 int Interpreter::visit(class content* e){
   Interpreter *it = new Interpreter();
+  if(e->type==1) cout<<e->toprint<<" ";
+  else if(e->type==2) cout<<e->num<<" ";
+  else{
+    cout<<e->lastval->accept(it)<<" ";
+  }
+
   return 0;
 }
 

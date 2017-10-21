@@ -139,6 +139,7 @@ Last: ID {$$ = new last(string($1),string("Normal"));}
 exp : expr { $$ = new Expr("expr", $1); }
 	| NUMBER { $$ = new Expr("num", $1); }
 	| Last { $$ = new Expr("last", $1); }
+	| '-' NUMBER { $$ = new Expr("num", -1*$2); }
 
 expr: exp '+' exp { $$ = new binExpr($1,"+",$3); }
 	| exp '-' exp { $$ = new binExpr($1,"-",$3); }
@@ -158,12 +159,12 @@ Type: EQEQ { $$ = new OperandType("=="); }
 	| '<' { $$ = new OperandType("<"); }
 	| '>' { $$ = new OperandType(">"); }
 
-BoolExp: exp Type exp { $$ = new boolExpr($1, $2, $3); }
-	| BoolExp OR BoolExp { $$ = new boolExpr($1, "OR", $3); }
-	| BoolExp AND BoolExp { $$ = new boolExpr($1, "AND", $3); }
+BoolExp: exp Type exp { $$ = new boolExpr("expr",$1, $2, $3); }
+	| BoolExp OR BoolExp { $$ = new boolExpr("bool", $1, "OR", $3); }
+	| BoolExp AND BoolExp { $$ = new boolExpr("bool", $1, "AND", $3); }
 
-If:  IF BoolExp '{' codeblocks '}' { $$ = new ifStmt($2,$4); }
-	| IF BoolExp '{' codeblocks '}' ELSE '{' codeblocks '}' {$$ = new ifStmt($2,$4,$8);}
+If:  IF BoolExp '{' codeblocks '}' { $$ = new ifStmt("if", $2,$4); }
+	| IF BoolExp '{' codeblocks '}' ELSE '{' codeblocks '}' {$$ = new ifStmt("else", $2,$4,$8);}
 
 While : WHILE BoolExp '{' codeblocks '}' { $$ = new whileStmt($2,$4);  }
 
@@ -175,10 +176,10 @@ For :
 Goto: GOTO ID IF BoolExp { $$ = new gotoStmt("cond", $2, $4); }
 	| GOTO ID { $$ = new gotoStmt("uncond", $2); }
 
-Read: READ terminal { $$ = new readStmt($2); }
+Read: READ Last { $$ = new readStmt($2); }
 
-Print: PRINT Contents Content { $$ = $2; $$->nline = false; $$->push_back($3); }
-	| PRINTLN Contents Content { $$ = $2; $$->nline = true; $$->push_back($3); }
+Print: PRINT Contents Content { $$ = $2; $$->type = 1; $$->push_back($3); }
+	| PRINTLN Contents Content { $$ = $2; $$->type = 2; $$->push_back($3); }
 
 Contents: { $$ = new printStmt(); }
 	| Contents Content ',' { $$->push_back($2); }
