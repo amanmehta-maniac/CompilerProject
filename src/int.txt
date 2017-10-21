@@ -1,4 +1,7 @@
 declblock{
-	int i=0, ayush0, jain=0,arr[100]; 
+	int i =-10;
+	int j, data[10];
+}
+codeblock{
 }
 

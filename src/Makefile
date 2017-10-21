@@ -4,7 +4,7 @@ CC = g++
 CFLAGS = -lfl `llvm-config-3.8 --cxxflags --cppflags mcjit native --ldflags --libs core` -ltinfo -lpthread -ldl
 FLAGS=-w -Wno-deprecated -g -std=c++11
 all: $(TARGET)
-$(TARGET): lex.yy.c parser.tab.c classes.cpp classcefs.h
+$(TARGET): lex.yy.c parser.tab.c classes.cpp classdef.h
 	$(CC) $(FLAGS) lex.yy.c parser.tab.c classes.cpp $(CFLAGS)
 lex.yy.c: scanner.l
 	flex scanner.l

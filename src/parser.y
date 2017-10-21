@@ -1,5 +1,5 @@
 %{
-#include "ClassDefs.h"
+#include "classdef.h"
 #include <bits/stdc++.h>
 
   extern "C" int yylex();
@@ -10,6 +10,7 @@
   extern "C" int errors;
   void yyerror(const char *s);
   class program* start = NULL;
+  extern "C" int error_flag;
   int errors=0;
 %}
 
@@ -18,9 +19,6 @@
 
 /*%option yylineno*/
 %start program
-
-
-
 
 %token DECL
 %token CODE
@@ -32,25 +30,31 @@
 %token <ch> '='
 %token <ch> '-'
 %token <ch> '/'
+%token <ch> ':'
 %token <ch> '*'
+%token <ch> '<'
+%token <ch> '>'
 %token ARR_ID
 %token ARR_NUM
-%token EQEQ
+%token <ch> EQEQ
 %token EQUAL
 %token IF
 %token ELSE	
-%token OR 		
-%token AND		
-%token NOTEQ
+%token <ch> OR 		
+%token <ch> AND		
+%token <ch> NOTEQ
+%token <ch> LESSEQ
+%token <ch> MOREEQ
 %token WHILE
 %token GOTO
 %token LABEL
 %token READ
-%token TOPRINT
+%token <ch> TOPRINT
 %token PRINT
 %token FOR
 %token <ch> SUBEQ
 %token <ch> ADDEQ
+%token <ch> PRINTLN
 
 
 %left EQEQ
@@ -67,7 +71,7 @@
 %left '/'
 %left '='
 
-%type <program> program
+%type <prog> program
 %type <decls> declblocks
 %type <decl> declblock
 %type <codes> codeblocks
@@ -75,32 +79,37 @@
 %type <vars> variables
 %type <var> variable
 %type <assign> Assign
-%type <ifst> If
-%type <forst> For
 %type <whilest> While
+%type <ifst> If
 %type <gotost> Goto
+%type <forst> For
 %type <printst> Print
-%type <readst> Read
+%type <readst> Read 
 %type <binexpr> expr
 %type <last> Last
-%type <boolExpr> BoolExp
-
-
-
-
-
+%type <boolex> BoolExp
+%type <optype> Type
+%type <unit> terminal
+%type <expr> exp
+%type <printst> Contents 
+%type <contnt> Content
 
 %%
 
 program: DECL '{' declblocks '}' CODE '{' codeblocks '}' {
 	$$ = new program($3,$7);
+	start = $$;
 }
+
+terminal: ID { $$ = new unitClass("id", string($1)); }
+	| NUMBER { $$ = new unitClass("num", $1); }
+
 
 declblocks : { $$ = new declblocks(); }
 	| declblocks declblock ';' { $$->push_back($2); }
 
 declblock:
-	INT variables { $$ = new declblock(string($1),$2); }
+	INT variables { $$ = new declblock($2); }
 
 variables:
 	variable { $$ = new Vars(); $$->push_back($1); }
@@ -108,84 +117,75 @@ variables:
 
 variable: 
 	ID { $$ = new Var(string("Normal"), string($1)); }
-	| ID '[' NUMBER ']' { $$ = new Var(string("Array"),string($1)); }
+	| ID '['  NUMBER ']' { $$ = new Var(string("Array"),string($1),$3); }
+	| ID '=' NUMBER { $$ = new Var(string("NormalInit"),string($1),"1",$3); }
+	| ID '=' '-' NUMBER { $$ = new Var(string("NormalInit2"),string($1),"1",-1*$4); }
 
 codeblocks:  { $$ = new codeblocks(); } 
-	| codeblocks codeblock ';' { $$->push_back($2); } 
+	| codeblocks codeblock  { $$->push_back($2);  } 
+	| codeblocks ID ':' codeblock{ $$->push_back($4,$2); } 
 
-codeblock: Assign { $$ = $1; }
-	| If { $$ = $1; }
-	| While { $$ = $1; }
-	| Goto { $$ = $1; }
-/*	| Label { $$ = $1; } */
-	| Print { $$ = $1; }
-	| Read { $$ = $1; }
-	| For { $$ = $1; }
-
-/*-Label: LABEL codeblock { }*/
-
+codeblock: Assign ';' { $$ = $1; }
+	| If { $$ = $1; } 
+	| While { $$ = $1;  } 
+	| Goto ';' { $$ = $1; } 
+	| Print ';' { $$ = $1; } 
+	| Read ';' { $$ = $1; } 
+	| For { $$ = $1; } 
 
 Last: ID {$$ = new last(string($1),string("Normal"));}
-	| ID '[' expr ']' { $$ = new Location(string($1),string("Array"),$3); }
+	| ID '[' exp ']' { $$ = new last(string($1),string("Array"),$3); }
 
-expr: expr '+' expr { $$ = new binExpr($1,string($2),$3); }
-	| expr '-' expr { $$ = new binExpr($1,string($2),$3); }
-	| expr '*' expr { $$ = new binExpr($1,string($2),$3); }
-	| expr '/' expr { $$ = new binExpr($1,string($2),$3); }
-	| NUMBER { $$ = $1; }
-	| Last { $$ = $1; }
+exp : expr { $$ = new Expr("expr", $1); }
+	| NUMBER { $$ = new Expr("num", $1); }
+	| Last { $$ = new Expr("last", $1); }
 
-
-
-
-Assign: 
-	Last '=' expr ';'  { $$ = new Assign(string($1),string($2), $3); } 
-	| Last ADDEQ expr ';'  { $$ = new Assign(string($1), string($2), $3); } 
-	| Last SUBEQ expr ';'  { $$ = new Assign(string($1), string($2), $3); } 
+expr: exp '+' exp { $$ = new binExpr($1,"+",$3); }
+	| exp '-' exp { $$ = new binExpr($1,"-",$3); }
+	| exp '*' exp { $$ = new binExpr($1,"*",$3); }
+	| exp '/' exp { $$ = new binExpr($1,"/",$3); }
 
 
-/*if you want to add more for_assign statements, currently only using i = 0 type */
-for_assign: ID '=' expr 
-/*	| ARR_ID '=' expr
-	| ARR_NUM '=' expr
-*/
-Type: EQEQ
-	| NOTEQ
-	| '<'
-	| '>'
-	| '<''='
-	| '>''='
+Assign: Last '=' exp  { $$ = new Assign(($1), "=", $3); } 
+	| Last ADDEQ exp  { $$ = new Assign(($1), "+=", $3); } 
+	| Last SUBEQ exp  { $$ = new Assign(($1), "-=", $3); } 
 
-BoolExp: expr Type expr 
-	| BoolExp OR BoolExp
-	| BoolExp AND BoolExp
 
-If:  IF BoolExp '{' codeblock '}' { $$ = new ifStmt($2,$4); }
-	| IF BoolExp '{' codeblock '}' ELSE '{' codeblock '}' {$$ = new ifStmt($2,$4,$8);}
+Type: EQEQ { $$ = new OperandType("=="); } 
+	| NOTEQ { $$ = new OperandType("!="); }
+	| MOREEQ { $$ = new OperandType(">="); }
+	| LESSEQ { $$ = new OperandType("<="); }
+	| '<' { $$ = new OperandType("<"); }
+	| '>' { $$ = new OperandType(">"); }
 
-While : WHILE BoolExp '{' codeblock '}' { $$ = new whileStmt($2,$4); }
+BoolExp: exp Type exp { $$ = new boolExpr($1, $2, $3); }
+	| BoolExp OR BoolExp { $$ = new boolExpr($1, "OR", $3); }
+	| BoolExp AND BoolExp { $$ = new boolExpr($1, "AND", $3); }
+
+If:  IF BoolExp '{' codeblocks '}' { $$ = new ifStmt($2,$4); }
+	| IF BoolExp '{' codeblocks '}' ELSE '{' codeblocks '}' {$$ = new ifStmt($2,$4,$8);}
+
+While : WHILE BoolExp '{' codeblocks '}' { $$ = new whileStmt($2,$4);  }
 
 
 For : 
-	FOR ID '=' expr ',' NUMBER '{' codeblock '}' { $$ = new forStmt($2,$4,$6,NULL,$8)}
-   | FOR ID '=' expr ',' NUMBER ',' NUMBER '{' codeblock '}' { $$ = new forStmt($2,$4,$6,$8,10)}
+	FOR ID '=' exp ',' terminal '{' codeblocks '}' { $$ = new forStmt($2,$4,$6,$8); }
+   | FOR ID '=' exp ',' terminal ',' terminal '{' codeblocks '}' { $$ = new forStmt($2,$4,$6,$8,$10); }
 
-Goto: GOTO ID IF BoolExp ';' codeblock
-	| GOTO ID ';' codeblock
+Goto: GOTO ID IF BoolExp { $$ = new gotoStmt("cond", $2, $4); }
+	| GOTO ID { $$ = new gotoStmt("uncond", $2); }
 
-Read: READ ID ';' codeblock
+Read: READ terminal { $$ = new readStmt($2); }
 
-Print : PRINT TOPRINT Content 
-      | PRINT ID Content 
-      | PRINT ARR_ID Content
-      | PRINT NUMBER Content
+Print: PRINT Contents Content { $$ = $2; $$->nline = false; $$->push_back($3); }
+	| PRINTLN Contents Content { $$ = $2; $$->nline = true; $$->push_back($3); }
 
-Content	: ';' codeblock /* epsilon */
-      | ',' TOPRINT  Content
-      | ',' ID Content
-      | ',' ARR_ID Content
-      | ',' NUMBER Content
+Contents: { $$ = new printStmt(); }
+	| Contents Content ',' { $$->push_back($2); }
 
+Content	: TOPRINT { $$ = new content($1); }
+	| Last { $$ = new content($1); }
+	| NUMBER { $$ = new content($1); }
 
 
 /*
@@ -202,7 +202,7 @@ expr: 	expr '+' expr
 
 int main(int argc, char *argv[])
 {
-	error_flag=0;
+	//error_flag=0;
 	if (argc == 1){
 		fprintf(stderr, "Correct usage: bcc filename\n");
 		exit(1);
@@ -215,7 +215,9 @@ int main(int argc, char *argv[])
 
 	yyin = fopen(argv[1], "r");
 	yyparse();
-	if(!error_flag){
-	printf("Done with no syntactic errors!\n");
-	}
+	Interpreter *it = new Interpreter();
+	start->accept(it);
+	//if(!error_flag){
+	//printf("Done with no syntactic errors!\n");
+	//}
 }
