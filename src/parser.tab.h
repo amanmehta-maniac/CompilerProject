@@ -60,17 +60,20 @@ extern int yydebug;
     OR = 270,
     AND = 271,
     NOTEQ = 272,
-    WHILE = 273,
-    GOTO = 274,
-    LABEL = 275,
-    READ = 276,
-    TOPRINT = 277,
-    PRINT = 278,
-    FOR = 279,
-    SUBEQ = 280,
-    ADDEQ = 281,
-    LTEQ = 282,
-    GTEQ = 283
+    LESSEQ = 273,
+    MOREEQ = 274,
+    WHILE = 275,
+    GOTO = 276,
+    LABEL = 277,
+    READ = 278,
+    TOPRINT = 279,
+    PRINT = 280,
+    FOR = 281,
+    SUBEQ = 282,
+    ADDEQ = 283,
+    PRINTLN = 284,
+    LTEQ = 285,
+    GTEQ = 286
   };
 #endif
 

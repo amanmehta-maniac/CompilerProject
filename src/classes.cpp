@@ -6,6 +6,8 @@ using namespace std;
 using namespace llvm;
 
 map< string, int > symtab;
+map< string, int > labtab;
+bool ERROR = false;
 
 #define TBS printTabs()
 #define outs(x)cout<<#x<<" is "<<x<<endl
@@ -42,7 +44,8 @@ static AllocaInst *CreateEntryBlockAlloca(Function *TheFunction, const std::stri
 program::program(class declblocks* decls, class codeblocks* methods){
   this->codes = methods;
   this->decls = decls;
-  cout<<"program finished\n";
+  if(ERROR) cout<<"Program has some errors to be fixed, check printed errors\n";
+  else cout<<"program finished without errors\n";
   
 }
 
@@ -144,9 +147,11 @@ void codeblocks::push_back(class codeblock* code){
   cnt++;
 }
 
-void codeblocks::push_back(class codeblock* code, string label){
+void codeblocks::push_back(class codeblock* code, string gotolabel){
   code_list.push_back(code);
-  code->label = label;
+  code->label = gotolabel;
+  // cout<<"label: "<<gotolabel<<"\nCNt: "<<cnt<<"\n";
+  labtab[gotolabel] = cnt;
   cnt++;
 }
 
@@ -260,7 +265,6 @@ Assign::Assign(class last* loc, string opr, class Expr* expr){
   this->loc = loc;
   this->opr = opr;
   this->expr = expr;
-  // cout<<loc->var<<opr<<expr->number<<"\n";
 }
 
 content::content(string toprint){
@@ -284,11 +288,13 @@ void printStmt::push_back(class content* var){
 }
 
 int Interpreter::visit(class program* obj){
-  cout<<"in prog\n";
+  // cout<<"in prog\n";
   Interpreter *it = new Interpreter();
   obj->decls->accept(it);
   obj->codes->accept(it);
-  
+  // for(auto i: labtab){
+  //   cout<<i.first<<" "<<i.second<<"\n";
+  // }
   return 0;
 }
 
@@ -332,25 +338,34 @@ int Interpreter::visit(class Var* obj){
       
     }
   }
-  cout<<"\n";
-  for(auto i: symtab){
-    cout<<i.first<<" "<<i.second<<"\n";
-  }
+  // cout<<"\n";
+  // for(auto i: symtab){
+  //   cout<<i.first<<" "<<i.second<<"\n";
+  // }
 
   return 0;
 }
 
 int Interpreter::visit(class codeblocks* e){
   Interpreter *it = new Interpreter();
-  for(auto i: e->code_list){
-    i->accept(it);
+  int cnt = 0;
+  int sz = e->cnt;
+  int i = 0;
+  while(i<sz){
+      int x = e->code_list[i]->accept(it);
+      if(x==-100){
+        // cout<<"statemt: "<<i<<"\n";
+        string lab = e->code_list[i]->getlabel();
+        // cout<<"next is: "<<lab<<"\ncnt: "<<labtab[lab];
+        i = labtab[lab];
+      }
+      else{
+        i++;
+      }
   }
   return 0;
 }
-// int Interpreter::visit(class codeblock* e){
-//   Interpreter *it = new Interpreter();
-//   return 0;
-// }
+
 int Interpreter::visit(class Expr* e){
   Interpreter *it = new Interpreter();
   if(e->expr_type=="num") return e->number;
@@ -412,6 +427,11 @@ int Interpreter::visit(class unitClass* e){
 int Interpreter::visit(class last* e){
   Interpreter *it = new Interpreter();
   if(e->last_type == "Normal"){
+    if (symtab.find(e->var)==symtab.end()){
+    cout<<"ERR->Variable: "<<e->var<<" is being used without being previously defined\n";
+    ERROR = true;
+    return 0;
+  }
     return symtab[e->var];
   }
   else{
@@ -424,21 +444,37 @@ int Interpreter::visit(class codeblock* e){
 }
 int Interpreter::visit(class Assign* e){
   Interpreter *it = new Interpreter();
+  if (symtab.find(e->loc->var)==symtab.end()){
+    cout<<"ERR->Variable: "<<e->loc->var<<" is being used without being previously defined\n";
+    ERROR = true;
+    return 0;
+  }
   if(e->opr=="=") symtab[e->loc->var] = e->expr->accept(it);
   else if(e->opr=="+=") symtab[e->loc->var] += e->expr->accept(it);
   else symtab[e->loc->var] -= e->expr->accept(it);
-  cout<<"assign\n";
-  for(auto i: symtab){
-    cout<<i.first<<" "<<i.second<<"\n";
-  }
+  // cout<<"assign\n";
+  // for(auto i: symtab){
+  //   cout<<i.first<<" "<<i.second<<"\n";
+  // }
   return 0;
 }
 int Interpreter::visit(class forStmt* e){
   Interpreter *it = new Interpreter();
   if(e->forType==1){
-    cout<<"fortype==1\n";
+    // cout<<"fortype==1\n";
+    if (symtab.find(e->i)==symtab.end()){
+      cout<<"ERR->Variable: "<<e->i<<" is being used without being previously defined\n";
+      ERROR = true;
+      return 0;
+    }
     symtab[e->i] = e->initial->accept(it);
     if(e->endcond->type=="id"){
+        if (symtab.find(e->endcond->name)==symtab.end()){
+          cout<<"ERR->Variable: "<<e->endcond->name<<" is being used without being previously defined\n";
+          ERROR = true;
+          return 0;
+        }
+
       while(symtab[e->i]<symtab[e->endcond->name]){
         e->stmts->accept(it);
         symtab[e->i] = symtab[e->i] + 1;
@@ -453,53 +489,98 @@ int Interpreter::visit(class forStmt* e){
     }
   }
   else{
-    cout<<"fortype==2\n";
+    // cout<<"fortype==2\n";
+    if (symtab.find(e->i)==symtab.end()){
+      cout<<"ERR->Variable: "<<e->i<<" is being used without being previously defined\n";
+      ERROR = true;
+      return 0;
+    }
+
     symtab[e->i] = e->initial->accept(it);
     if(e->endcond->type=="id"){
+        if (symtab.find(e->endcond->name)==symtab.end()){
+          cout<<"ERR->Variable: "<<e->endcond->name<<" is being used without being previously defined\n";
+          ERROR = true;
+          return 0;
+        }
+
       while(symtab[e->i]<symtab[e->endcond->name]){
         e->stmts->accept(it);
-        if(e->incval->type=="id") symtab[e->i] = symtab[e->i] + symtab[e->incval->name];
+        if(e->incval->type=="id") {
+          if (symtab.find(e->incval->name)==symtab.end()){
+          cout<<"ERR->Variable: "<<e->incval->name<<" is being used without being previously defined\n";
+          ERROR = true;
+          return 0;
+        }
+          symtab[e->i] = symtab[e->i] + symtab[e->incval->name];
+        }
         if(e->incval->type!="id") symtab[e->i] = symtab[e->i] + e->incval->value;
       }
     }
     else{
       while(symtab[e->i]<e->endcond->value){
         e->stmts->accept(it);
-        if(e->incval->type=="id") symtab[e->i] = symtab[e->i] + symtab[e->incval->name];
+        if(e->incval->type=="id") {
+            if (symtab.find(e->incval->name)==symtab.end()){
+            cout<<"ERR->Variable: "<<e->incval->name<<" is being used without being previously defined\n";
+            ERROR = true;
+            return 0;
+          }
+          symtab[e->i] = symtab[e->i] + symtab[e->incval->name];
+        }
         if(e->incval->type!="id") symtab[e->i] = symtab[e->i] + e->incval->value;
       }
     }
   }
-  cout<<"after FOR\n";
-  for(auto i: symtab){
-    cout<<i.first<<" "<<i.second<<"\n";
-  }
+  // cout<<"after FOR\n";
+  // for(auto i: symtab){
+  //   cout<<i.first<<" "<<i.second<<"\n";
+  // }
   return 0;
 }
 int Interpreter::visit(class gotoStmt* e){
   Interpreter *it = new Interpreter();
+  if(e->type=="uncond"){
+    return -100;
+  }
+  else{
+    // cout<<"conditional!\n";
+    if(e->cond->accept(it)) return -100;
+  }
   return 0;
 }
 int Interpreter::visit(class readStmt* e){
   Interpreter *it = new Interpreter();
-  if(e->toread->last_type=="Normal") symtab[e->toread->var] = e->toread->accept(it);
-  else symtab[to_string(e->toread->expr->accept(it)) + e->toread->var] = e->toread->accept(it);
+  if(e->toread->last_type=="Normal") {
+    if (symtab.find(e->toread->var)==symtab.end()){
+          cout<<"ERR->Variable: "<<e->toread->var<<" is being used without being previously defined\n";
+          ERROR = true;
+          return 0;
+        }
+    symtab[e->toread->var] = e->toread->accept(it);
+  }
+  else {
+    if (symtab.find(to_string(e->toread->expr->accept(it))+e->toread->var)==symtab.end()){
+          cout<<"ERR->Variable: "<<e->toread->var<<"["<<to_string(e->toread->expr->accept(it))<<"] is being used without being previously defined\n";
+          ERROR = true;
+          return 0;
+        }
+    symtab[to_string(e->toread->expr->accept(it)) + e->toread->var] = e->toread->accept(it);
+  }
   return 0;
 }
 int Interpreter::visit(class printStmt* e){
   Interpreter *it = new Interpreter();
-  cout<<"e_type: "<<e->type<<"\n";
   if(e->type==2){
     for(auto i: e->outs) {
       i->accept(it);
-      cout<<"\n";
     }
+    cout<<"\n";
   }
   else{
     for(auto i: e->outs) {
       i->accept(it);
     }
-    cout<<"\n";
   }
   return 0;
 }
