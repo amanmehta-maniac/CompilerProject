@@ -5,7 +5,7 @@ declblock{
 
 codeblock{
 	i = 0;
-	data[i] = i;
+L1:	data[i] = i;
 	i = i + 1;
 	goto L1 if i < 100;
 	
@@ -15,9 +15,9 @@ codeblock{
 L2:	sum = sum + data[i];
 	i = i + 1;
 	goto L2 if i < 100;
-	print "Sum value: ", sum,x;
-	print "Sum value: ", sum,x;
-	x = 5;
+	print "Sum value: ", sum,i;
+	i += 10;
+	print "Sum value: ", sum,i;
+	i = 5;
 
 }
-

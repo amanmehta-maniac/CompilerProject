@@ -356,6 +356,12 @@ int Interpreter::visit(class codeblocks* e){
       if(x==-100){
         // cout<<"statemt: "<<i<<"\n";
         string lab = e->code_list[i]->getlabel();
+        if(labtab.find(lab)==labtab.end()){
+          cout<<"ERR->Label: "<<lab<<" no found!\n";
+          ERROR = true;
+          break;
+          return 0;
+        }
         // cout<<"next is: "<<lab<<"\ncnt: "<<labtab[lab];
         i = labtab[lab];
       }
@@ -444,19 +450,23 @@ int Interpreter::visit(class codeblock* e){
 }
 int Interpreter::visit(class Assign* e){
   Interpreter *it = new Interpreter();
-  if (symtab.find(e->loc->var)==symtab.end()){
-    cout<<"ERR->Variable: "<<e->loc->var<<" is being used without being previously defined\n";
-    ERROR = true;
+  if(e->loc->last_type=="Normal"){
+    if (symtab.find(e->loc->var)==symtab.end()){
+      cout<<"ERR->Variablesassign: "<<e->loc->var<<" is being used without being previously defined\n";
+      ERROR = true;
+      return 0;
+    }
+    if(e->opr=="=") symtab[e->loc->var] = e->expr->accept(it);
+    else if(e->opr=="+=") symtab[e->loc->var] += e->expr->accept(it);
+    else symtab[e->loc->var] -= e->expr->accept(it);
     return 0;
   }
-  if(e->opr=="=") symtab[e->loc->var] = e->expr->accept(it);
-  else if(e->opr=="+=") symtab[e->loc->var] += e->expr->accept(it);
-  else symtab[e->loc->var] -= e->expr->accept(it);
-  // cout<<"assign\n";
-  // for(auto i: symtab){
-  //   cout<<i.first<<" "<<i.second<<"\n";
-  // }
-  return 0;
+  else{
+    if(e->opr=="=") symtab[to_string(e->loc->expr->accept(it)) + e->loc->var] = e->expr->accept(it);
+    else if(e->opr=="+=") symtab[to_string(e->loc->expr->accept(it)) + e->loc->var] += e->expr->accept(it);
+    else symtab[to_string(e->loc->expr->accept(it)) + e->loc->var] -= e->expr->accept(it);
+    return 0;
+  }
 }
 int Interpreter::visit(class forStmt* e){
   Interpreter *it = new Interpreter();
@@ -635,6 +645,5 @@ int Interpreter::visit(class content* e){
 
   return 0;
 }
-
 
 

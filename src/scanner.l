@@ -61,9 +61,10 @@ cb "]"
 
 }
 {string_l} {
+			yylval.ch = strdup(yytext);
 			return TOPRINT;
 
-}
+		}
 {goto}{space} {  
 			return GOTO;
                 } 
@@ -177,5 +178,4 @@ void yyerror (char const *s)
 {
     fprintf (stderr, "%s\n", s);
 }
-
 

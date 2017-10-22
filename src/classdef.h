@@ -395,4 +395,3 @@ public:
 	binExpr(class Expr*, string, class Expr*);
 	 int accept(Visitor* v){return v->visit(this);return v->visit(this);};
 };
-

@@ -7,6 +7,7 @@ codeblock{
 
 	while i < 100 {
 		data[i] = i;
+		i += 1;
 	}
 	
 
@@ -14,6 +15,7 @@ codeblock{
 	i = 0;
 	while i< 100 {
 		sum = sum + data[i];
+		i += 1;
  	}
  	
 
