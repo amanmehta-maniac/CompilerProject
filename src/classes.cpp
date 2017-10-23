@@ -1,6 +1,6 @@
 #include <bits/stdc++.h>
 
-#include "ClassDefs.h"
+#include "classdef.h"
 
 using namespace std;
 using namespace llvm;
@@ -116,12 +116,6 @@ program::program(string name, class declblock* decls, class codeblocks* methods)
   this->fields = decls;
 }
 
-Value* program::codegen(){
-  Value *V = ConstantInt::get(getGlobalContext(), APInt(32,0));
-  V = fields->codegen();
-  V = methods->codegen();
-  return V;
-}
 void program::generateCode(){
   cout << "Generating LLVM IR Code\n";
   TheModule->dump();
@@ -148,13 +142,6 @@ void declblocks::push_back(class declblock* var){
   cnt++;
 }
 
-Value* declblocks::codegen(){
-  for(int i = 0; i < decl_list.size(); i++){
-    decl_list[i]->codegen();
-  }
-  Value* v = ConstantInt::get(getGlobalContext(), APInt(32,1));
-  return v;
-}
 
 void declblocks::traverse(){
   TBS;
@@ -181,31 +168,6 @@ vector<class Var*> declblock::getVarsList(){
   return var_list;
 }
 
-Value* declblock::codegen(){
-  for(int i = 0; i < var_list.size(); i++){
-    /* Allocate one location of global variable for all */
-    class Var* var = var_list[i];
-    llvm::Type *ty;
-    if(dataType == "int"){
-      ty = Type::getInt32Ty(Context);
-    }
-    else if(dataType == "boolean"){
-      ty = Type::getInt1Ty(Context);
-    }
-    if(var->isArray()){
-      ArrayType* arrType = ArrayType::get(ty,var->getLength());
-      PointerType* PointerTy_1 = PointerType::get(ArrayType::get(ty,var->getLength()),0);
-      GlobalVariable* gv = new GlobalVariable(*TheModule,arrType,false,GlobalValue::ExternalLinkage,0,var->getName());
-      gv->setInitializer(ConstantAggregateZero::get(arrType));
-    }
-    else{
-      PointerType* ptrTy = PointerType::get(ty,0);
-      GlobalVariable* gv = new GlobalVariable(*TheModule,ptrTy , false,GlobalValue::ExternalLinkage, 0, var->getName());
-    }
-  }
-  Value* v = ConstantInt::get(getGlobalContext(), APInt(32,1));
-  return v;
-}
 
 void declblock::traverse(){
   for(int i = 0;  i < var_list.size(); i++){
@@ -222,33 +184,6 @@ declblock::declblock(string dataType, class Vars* vars){
 }
 
 
-
-Value* declblock::codegen(){
-  for(int i = 0; i < var_list.size(); i++){
-    /* Allocate one location of global variable for all */
-    class Var* var = var_list[i];
-    llvm::Type *ty;
-    if(dataType == "int"){
-      ty = Type::getInt32Ty(Context);
-    }
-    else if(dataType == "boolean"){
-      ty = Type::getInt1Ty(Context);
-    }
-    if(var->isArray()){
-      ArrayType* arrType = ArrayType::get(ty,var->getLength());
-      PointerType* PointerTy_1 = PointerType::get(ArrayType::get(ty,var->getLength()),0);
-      GlobalVariable* gv = new GlobalVariable(*TheModule,arrType,false,GlobalValue::ExternalLinkage,0,var->getName());
-      gv->setInitializer(ConstantAggregateZero::get(arrType));
-    }
-    else{
-      PointerType* ptrTy = PointerType::get(ty,0);
-      GlobalVariable* gv = new GlobalVariable(*TheModule,ptrTy , false,GlobalValue::ExternalLinkage, 0, var->getName());
-    }
-  }
-  Value* v = ConstantInt::get(getGlobalContext(), APInt(32,1));
-  return v;
-}
-
 Stmts::Stmts(){
   this->cnt = 0;
 }
@@ -262,13 +197,6 @@ bool Stmts::has_return(){
   return false;
 }
 
-Value* Stmts::codegen(){
-  Value* v = ConstantInt::get(getGlobalContext(), llvm::APInt(32,1));
-  for(int i = 0; i < stmts.size(); i++){
-    v = stmts[i]->codegen();
-  }
-  return v;
-}
 
 void Stmts::traverse(){
   TBS;
@@ -296,63 +224,6 @@ ifStmt::ifStmt(class Expr* cond, class Block* block1, class Block* block2){
 }
 
 
-Value* ifStmt::codegen(){
-  Value *cond = condition->codegen();
-  if(cond == 0){
-    errors++;
-    return reportError::ErrorV("Invalid Expression in the IF");
-  }
-  Function* TheFunction = Builder.GetInsertBlock()->getParent();
-  BasicBlock *ifBlock = BasicBlock::Create(Context, "if", TheFunction);
-  BasicBlock *elseBlock = BasicBlock::Create(Context, "else");
-  BasicBlock *nextBlock = BasicBlock::Create(Context, "ifcont");
-  Builder.CreateCondBr(cond, ifBlock, elseBlock);
-
-  Builder.SetInsertPoint(ifBlock);
-
-  Value* ifval  = if_block->codegen();
-  if(ifval == 0){
-    return 0;
-  }
-
-  Builder.CreateBr(nextBlock);
-  ifBlock = Builder.GetInsertBlock();
-
-  TheFunction->getBasicBlockList().push_back(elseBlock);
-  Builder.SetInsertPoint(elseBlock);
-  Value* elseval;
-  if(else_block != NULL)
-  {
-    elseval = else_block->codegen();
-    if(elseval == 0){
-      return 0;
-    }
-  }
-  Builder.CreateBr(nextBlock);
-  elseBlock = Builder.GetInsertBlock();
-  TheFunction->getBasicBlockList().push_back(nextBlock);
-  Builder.SetInsertPoint(nextBlock);
-
-  bool phi_if = false,phi_else = false;
-  if(if_block->has_return()){
-    phi_if = true;
-  }
-  if(else_block != NULL && else_block->has_return()){
-      phi_else = true;
-  }
-  if(phi_if||phi_else){
-    PHINode *PN = Builder.CreatePHI(Type::getInt32Ty(getGlobalContext()), 2,"iftmp");
-    if(phi_if)
-      PN->addIncoming(ifval, ifBlock);
-    if(phi_else){
-        PN->addIncoming(elseval, elseBlock);
-    }
-    return PN;
-  }
-
-  Value *V = ConstantInt::get(getGlobalContext(), APInt(32,0));
-  return V;
-}
 
 void ifStmt::traverse(){
   TBS;
@@ -397,11 +268,6 @@ void Vars::push_back(class Var* var){
   cnt++;
 }
 
-Value* Vars::codegen(){
-  Value *V = ConstantInt::get(getGlobalContext(), APInt(32,0));
-  return V;
-}
-
 Var::Var(string declType, string name, unsigned int length){
   this->declType = declType;
   this->name = name;
@@ -426,10 +292,6 @@ string Var::getName(){
   return name;
 }
 
-Value* Var::codegen(){
-  Value *V = ConstantInt::get(getGlobalContext(), APInt(32,0));
-  return V;
-}
 
 void Var::traverse(){
   TBS;
@@ -463,89 +325,6 @@ codeblock::codeblock(string ret_type, string name, class methodArgs* args, class
   this->body = block;
 }
 
-Function* codeblock::codegen(){
-  vector<string> argNames;
-  vector<string> argTypes;
-  vector<class methodArg*> args = arg_list->getArgList();
-  vector<Type*> arguments;
-  int arg_size = args.size();
-  for(int i = 0; i < args.size(); i++){
-    /* Iterate over the arguments and get the types of them in llvm */
-    string arg_type = args[i]->getType();
-    string arg_name = args[i]->getName();
-    if(arg_type == "int"){
-      arguments.push_back(Type::getInt32Ty(getGlobalContext()));
-    }
-    else if (arg_type == "boolean"){
-      arguments.push_back(Type::getInt1Ty(getGlobalContext()));
-    }
-    else{
-      errors++;
-      reportError::ErrorV("Arguments can only be int or boolean");
-      return 0;
-    }
-    argTypes.push_back(string(arg_type));
-    argNames.push_back(string(arg_name));
-  }
-
-  Type *returnType;
-  /* Get the return Type */
-  if(type == "int"){
-    returnType = Type::getInt32Ty(getGlobalContext());
-  }
-  else if(type == "boolean"){
-    returnType = Type::getInt1Ty(getGlobalContext());
-  }
-  else if (type == "void"){
-    returnType = Type::getVoidTy(getGlobalContext());
-  }
-  else{
-    errors++;
-    reportError::ErrorV("Invalid Return Type for " + name + ". Return Type can only be int or boolean or bool");
-    return 0;
-  }
-
-  /* Get the function type and create a Function */
-  FunctionType *FT = llvm::FunctionType::get(returnType, arguments, false);
-  Function *F = llvm::Function::Create(FT, Function::ExternalLinkage, name, TheModule);
-
-  /* Iterate through arguments and set the Names for them */
-
-  unsigned Idx = 0;
-  for (Function::arg_iterator AI = F->arg_begin(); Idx != arg_size; ++AI, ++Idx) {
-    AI->setName(argNames[Idx]);
-  }
-
-  /* Create a New block for this Function */
-  BasicBlock *BB = BasicBlock::Create(getGlobalContext(), "entry", F);
-  Builder.SetInsertPoint(BB);
-  Idx = 0;
-
-  /* Allocate memory for the arguments passed */
-  for (auto &Arg : F->args()) {
-    if(Idx == arg_size){break;}
-    AllocaInst *Alloca = CreateEntryBlockAlloca(F, argNames[Idx],argTypes[Idx]);
-    Builder.CreateStore(&Arg, Alloca);
-
-    NamedValues[argNames[Idx]] = Alloca;
-    Idx++;
-  }
-
-  Value *RetVal = body->codegen();
-  if(RetVal){
-    /* make this the return value */
-    if(type != "void")
-    Builder.CreateRet(RetVal);
-    else
-    Builder.CreateRetVoid();
-    /* Verify the function */
-    verifyFunction(*F);
-    return F;
-  }
-  /* Error Condition */
-  F->eraseFromParent();
-  return 0;
-}
 
 void codeblocks::traverse(){
   TBS;
@@ -561,13 +340,6 @@ void codeblocks::traverse(){
 }
 
 
-Value* codeblocks::codegen(){
-  Value *V = ConstantInt::get(getGlobalContext(), APInt(32,0));
-  for(int i = 0; i < decl_list.size(); i++){
-    V = decl_list[i]->codegen();
-  }
-  return V;
-}
 
 void codeblocks::traverse(){
   TBS;
@@ -591,59 +363,6 @@ void codeblocks::push_back(class codeblock* decl){
   cnt++;
 }
 
-Value* binExpr::codegen(){
-  Value* left = lhs->codegen();
-  Value* right = rhs->codegen();
-  if(lhs->getEtype() == exprType::location){
-    left = Builder.CreateLoad(left);
-  }
-  if(rhs->getEtype() == exprType::location){
-    right = Builder.CreateLoad(right);
-  }
-  if(left == 0){
-    errors++;
-    return reportError::ErrorV("Error in left operand of " + opr);
-  }
-  else if(right == 0){
-    errors++;
-    return reportError::ErrorV("Error in right operand of " + opr);
-  }
-  Value* v;
-  if(opr == "+"){
-    v = Builder.CreateAdd(left,right,"addtmp");
-  }
-  else if (opr == "-"){
-    v = Builder.CreateSub(left,right,"subtmp");
-  }
-  else if (opr == "*"){
-    v = Builder.CreateMul(left,right,"multmp");
-  }
-  else if (opr == "/"){
-    v = Builder.CreateUDiv(left,right,"divtmp");
-  }
-  else if(opr == "%"){
-    v = Builder.CreateURem(left,right,"modtmp");
-  }
-  else if (opr == "<"){
-    v = Builder.CreateICmpULT(left,right,"ltcomparetmp");
-  }
-  else if (opr == ">"){
-    v = Builder.CreateICmpUGT(left,right,"gtcomparetmp");
-  }
-  else if (opr == "<="){
-    v = Builder.CreateICmpULE(left,right,"lecomparetmp");
-  }
-  else if (opr == ">="){
-    v = Builder.CreateICmpUGE(left,right,"gecomparetmp");
-  }
-  else if (opr == "=="){
-    v = Builder.CreateICmpEQ(left,right,"equalcomparetmp");
-  }
-  else if (opr == "!="){
-    v = Builder.CreateICmpNE(left,right,"notequalcomparetmp");
-  }
-  return v;
-}
 
 binExpr::binExpr(class Expr* lhs, string opr, class Expr* rhs){
   this->lhs = lhs;
