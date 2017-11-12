@@ -8,7 +8,6 @@ using namespace llvm;
 map< string, int > symtab;
 map< string, int > labtab;
 bool ERROR = false;
-
 #define TBS printTabs()
 #define outs(x)cout<<#x<<" is "<<x<<endl
 ofstream out("XML_Vistor.txt");
@@ -21,6 +20,9 @@ static LLVMContext &Context = getGlobalContext();
 static IRBuilder<> Builder(Context);
 static std::map<std::string, llvm::AllocaInst *> NamedValues;
 static FunctionPassManager *TheFPM;
+FunctionType *FT = llvm::FunctionType::get(Builder.getVoidTy(), false);
+Function *F = llvm::Function::Create(FT, Function::ExternalLinkage, "codes", TheModule);
+
 
 /* Usefull Functions */
 
@@ -286,6 +288,9 @@ content::content(class last* lastval){
 void printStmt::push_back(class content* var){
   outs.push_back(var);
 }
+
+
+/* INTERPRETERS */
 
 int Interpreter::visit(class program* obj){
   // cout<<"in prog\n";
@@ -646,4 +651,283 @@ int Interpreter::visit(class content* e){
   return 0;
 }
 
+/*--------CODEGENS---------*/
 
+
+Value* declblocks::codegen(){
+  int sz = decl_list.size();
+  for (int i = 0; i < sz; ++i)
+  {
+    decl_list[i]->codegen();
+    /* code */
+  }
+  Value* v = ConstantInt::get(getGlobalContext(), APInt(32,500));
+  return v;
+}
+
+Value* declblock::codegen(){
+  int sz = var_list.size();
+  for (int i = 0; i < sz; ++i){
+    class Var* var = var_list[i];
+    Type* ty = Type::getInt32Ty(Context);
+    if(var->declType=="Normal"){
+      PointerType* ptrTy = PointerType::get(ty,0);
+      GlobalVariable* gv = new GlobalVariable(*TheModule,ptrTy,false,GlobalValue::ExternalLinkage,0,var->getName());
+    }
+    else if(var->declType=="NormalInit"){
+      PointerType* ptrTy = PointerType::get(ty,0);
+      Constant* vv = ConstantInt::get(getGlobalContext(), APInt(32,(var->init_val)));
+      GlobalVariable* gv = new GlobalVariable(*TheModule,ptrTy,false,GlobalValue::ExternalLinkage,vv,var->getName());
+    }
+  }
+  Value* v = ConstantInt::get(getGlobalContext(), APInt(32,100));
+  return v;
+}
+
+Value* program::codegen(){
+  Value* v = ConstantInt::get(getGlobalContext(), APInt(32,1));
+  decls->codegen();
+  BasicBlock *BB = BasicBlock::Create(getGlobalContext(), "entry", F);
+  Builder.SetInsertPoint(BB);
+  codes->codegen();
+  return v;
+} 
+
+Value* codeblocks::codegen(){
+  Value *v = ConstantInt::get(getGlobalContext(), APInt(32,1000));
+  int sz = code_list.size();
+  for (int i = 0; i < sz; ++i)
+  {
+    code_list[i]->codegen();
+  }
+  return v;
+}
+
+Value* Assign::codegen(){
+  Value* v = ConstantInt::get(getGlobalContext(), APInt(32,1));
+  Value* lhsv_register = loc->codegen();
+  Value* rhsv = expr->codegen();
+  // Value* lhsv = Builder.CreateLoad(lhsv_register);
+  // cout<<"oohhyeaaa3\n";
+  if(opr=="="){
+    rhsv = Builder.CreateStore(rhsv,lhsv_register);
+  }
+  else if(opr=="+="){
+    rhsv = Builder.CreateAdd(lhsv_register, rhsv,"addEqualToTmp");
+    rhsv = Builder.CreateStore(rhsv,lhsv_register);
+  }
+  else if (opr == "-="){
+    rhsv = Builder.CreateSub(lhsv_register, rhsv,"subEqualToTmp");
+    rhsv = Builder.CreateStore(rhsv,lhsv_register);
+  }
+  return rhsv;
+}
+
+Value* Expr::codegen(){
+  Value* v = ConstantInt::get(getGlobalContext(), llvm::APInt(32,0));
+  if(expr_type=="num"){
+    // cout<<"number is "<<number<<"\n";
+    v = ConstantInt::get(getGlobalContext(), llvm::APInt(32,number));
+  }
+  else if(expr_type=="last"){
+    // v = Builder.CreateLoad(v);
+    v = lastVar->codegen();
+  }
+  else if(expr_type=="expr"){
+    v = binexpr->codegen();
+  }
+  return v;
+}
+
+
+Value* binExpr::codegen(){
+  Value* v = ConstantInt::get(getGlobalContext(), llvm::APInt(32,0));
+  // cout<<"inbinexpr\n";
+  Value* left = lhs->codegen();
+  Value* right = rhs->codegen();
+  if(lhs->expr_type == "last"){
+    left = Builder.CreateLoad(left);
+  }
+  if(rhs->expr_type == "last"){
+    right = Builder.CreateLoad(right);
+  }
+  if(opr=="+"){
+    v = Builder.CreateAdd(left,right,"addtmp");
+  }
+  else if (opr == "-"){
+    v = Builder.CreateSub(left,right,"subtmp");
+  }
+  else if (opr == "*"){
+    v = Builder.CreateMul(left,right,"multmp");
+  }
+  else if (opr == "/"){
+    v = Builder.CreateUDiv(left,right,"divtmp");
+  }
+  else if (opr == "=="){
+    v = Builder.CreateICmpEQ(left,right,"equalcomparetmp");
+  }
+  else if (opr == "!="){
+    v = Builder.CreateICmpNE(left,right,"notequalcomparetmp");
+  }
+  else if (opr == "<="){
+    v = Builder.CreateICmpULE(left,right,"lecomparetmp");
+  }
+  else if (opr == ">="){
+    v = Builder.CreateICmpUGE(left,right,"gecomparetmp");
+  }
+  else if (opr == ">"){
+    v = Builder.CreateICmpUGT(left,right,"gtcomparetmp");
+  }
+  else if (opr == "<"){
+    v = Builder.CreateICmpULT(left,right,"ltcomparetmp");
+  }
+  else if(opr == "%"){
+    v = Builder.CreateURem(left,right,"modtmp");
+  }
+  return v;
+}
+
+
+Value* ifStmt::codegen(){
+  Value* v = ConstantInt::get(getGlobalContext(), llvm::APInt(32,0));
+  Value* condi = cond->codegen();
+  Function* TheFunction = F;
+  BasicBlock *ifBlock = BasicBlock::Create(Context, "if", TheFunction);
+  BasicBlock *elseBlock = BasicBlock::Create(Context, "else");
+  BasicBlock *nextBlock = BasicBlock::Create(Context, "ifcont");
+  Builder.CreateCondBr(condi, ifBlock, elseBlock);
+  Builder.SetInsertPoint(ifBlock);
+  Value* ifval  = if_part->codegen();
+  if(ifval == 0){
+    return 0;
+  }
+  
+  Builder.CreateBr(nextBlock);
+  ifBlock = Builder.GetInsertBlock();
+
+  // ifBlock = 
+  TheFunction->getBasicBlockList().push_back(elseBlock);
+  Builder.SetInsertPoint(elseBlock);
+  Value* elseval;
+  // cout<<"type is: "<<type<<"\n";
+  if(type == "else")
+  {
+    elseval = else_part->codegen();
+    if(elseval == 0){
+      return 0;
+    }
+  }
+  TheFunction->getBasicBlockList().push_back(nextBlock);  
+  // unsigned PhiSize = 2;
+  Builder.CreateBr(nextBlock);
+  // elseBlock = Builder.GetInsertBlock();
+  Builder.SetInsertPoint(nextBlock);
+  // PHINode *phi = Builder.CreatePHI(Type::getInt32Ty(getGlobalContext()),PhiSize,"iftmp");
+  // phi->addIncoming(ifval,ifBlock);
+  // phi->addIncoming(elseval,elseBlock);
+  Value *V = ConstantInt::get(getGlobalContext(), APInt(32,0));
+  return V;
+}
+
+Value* boolExpr::codegen(){
+  Value* v = ConstantInt::get(getGlobalContext(), llvm::APInt(32,0));
+  // cout<<"in boolexpr\n";
+  if(boolType=="expr"){
+  // cout<<"in boolexpr2\n";
+    Value* lhs = expr1->codegen();
+    Value* rhs = expr2->codegen();
+    string opr = oper_type->op;
+    if (opr == "<"){
+      // cout<<"in boolexpr3\n";
+      return Builder.CreateICmpULT(lhs,rhs,"ltcomparetmp");
+    }
+    else if (opr == ">"){
+      return Builder.CreateICmpUGT(lhs,rhs,"gtcomparetmp");
+    }
+    else if (opr == "<="){
+      return Builder.CreateICmpULE(lhs,rhs,"lecomparetmp");
+    }
+    else if (opr == ">="){
+      return Builder.CreateICmpUGE(lhs,rhs,"gecomparetmp");
+    }
+    else if (opr == "=="){
+      return Builder.CreateICmpEQ(lhs,rhs,"equalcomparetmp");
+    }
+    else if (opr == "!="){
+      return Builder.CreateICmpNE(lhs,rhs,"notequalcomparetmp");
+    }  
+  }
+  return v;
+}
+
+
+Value* forStmt::codegen(){
+  Value* v = ConstantInt::get(getGlobalContext(), llvm::APInt(32,0));
+  Value* initval = initial->codegen();
+
+  // v = TheModule->getGlobalVariable(i);
+
+  // Builder.CreateStore(initval, v);
+  BasicBlock* preheaderBB = Builder.GetInsertBlock();
+
+  BasicBlock* loopBB = BasicBlock::Create(getGlobalContext(),"loop",F);
+  Builder.CreateBr(loopBB);
+  Builder.SetInsertPoint(loopBB);
+  PHINode* phi = Builder.CreatePHI(Type::getInt32Ty(getGlobalContext()), 2, i.c_str());
+  phi->addIncoming(initval,preheaderBB);
+  if(stmts->codegen()==0){
+    return 0;
+  }
+  Value* jump;
+  cout<<"firtpye is: "<<forType<<"\n";
+  if(forType==2){
+    if(incval->type=="num"){
+      jump = ConstantInt::get(Type::getInt32Ty(getGlobalContext()), incval->value);
+    }
+    else{
+      jump = TheModule->getGlobalVariable(incval->name);  
+    }
+  }
+  else{
+    jump = ConstantInt::get(Type::getInt32Ty(getGlobalContext()), 1);
+  }
+  Value* nextval = Builder.CreateAdd(phi, jump, "nextval");
+  Value* endcondval;
+  if(endcond->type=="num") {
+    endcondval = ConstantInt::get(getGlobalContext(), llvm::APInt(32,endcond->value));
+  }
+  else{
+    endcondval = TheModule->getGlobalVariable(endcond->name);  
+  }
+  endcondval = Builder.CreateICmpULT(nextval,endcondval,"ltcomparetmp");
+  BasicBlock *loopEndBlock = Builder.GetInsertBlock();
+  BasicBlock *afterBB = BasicBlock::Create(getGlobalContext(), "afterloop", F);
+  Builder.CreateCondBr(endcondval, loopBB, afterBB);
+  Builder.SetInsertPoint(afterBB);
+  phi->addIncoming(nextval, loopEndBlock);
+
+
+  llvm::Value *V = ConstantInt::get(getGlobalContext(), APInt(32,1));
+  return V;
+}
+
+Value* last::codegen(){
+  llvm::Value *v = ConstantInt::get(getGlobalContext(), APInt(32,1));
+  if(last_type=="Normal"){
+    v = TheModule->getGlobalVariable(var);  
+  }
+  return v;
+}
+
+
+Value* whileStmt::codegen(){
+  llvm::Value *v = ConstantInt::get(getGlobalContext(), APInt(32,1));
+  BasicBlock* loopBB = BasicBlock::Create(getGlobalContext(),"loop",F);
+  Builder.CreateBr(loopBB);
+  Builder.SetInsertPoint(loopBB);
+  if(stmts->codegen()==0){
+    return 0;
+  }
+
+  return v;  
+}

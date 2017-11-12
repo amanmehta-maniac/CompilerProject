@@ -152,12 +152,12 @@ Assign: Last '=' exp  { $$ = new Assign(($1), "=", $3); }
 	| Last SUBEQ exp  { $$ = new Assign(($1), "-=", $3); } 
 
 
-Type: EQEQ { $$ = new OperandType("=="); } 
-	| NOTEQ { $$ = new OperandType("!="); }
-	| MOREEQ { $$ = new OperandType(">="); }
-	| LESSEQ { $$ = new OperandType("<="); }
-	| '<' { $$ = new OperandType("<"); }
-	| '>' { $$ = new OperandType(">"); }
+Type: EQEQ { $$ = new OperandType(string("==")); } 
+	| NOTEQ { $$ = new OperandType(string("!=")); }
+	| MOREEQ { $$ = new OperandType(string(">=")); }
+	| LESSEQ { $$ = new OperandType(string("<=")); }
+	| '<' { $$ = new OperandType(string("<")); }
+	| '>' { $$ = new OperandType(string(">")); }
 
 BoolExp: exp Type exp { $$ = new boolExpr("expr",$1, $2, $3); }
 	| BoolExp OR BoolExp { $$ = new boolExpr("bool", $1, "OR", $3); }
@@ -218,6 +218,8 @@ int main(int argc, char *argv[])
 	yyparse();
 	Interpreter *it = new Interpreter();
 	start->accept(it);
+	start->codegen();
+	start->generateCode();
 	//if(!error_flag){
 	//printf("Done with no syntactic errors!\n");
 	//}

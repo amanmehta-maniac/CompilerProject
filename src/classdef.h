@@ -170,6 +170,7 @@ public:
 public:
 	program(class declblocks*,class codeblocks*);
 	void generateCode();
+	Value* codegen();
 	int accept(Visitor* v){return v->visit(this);};
 };
 
@@ -179,6 +180,7 @@ public:
 	int cnt;
 public:
 	declblocks();
+	Value* codegen();
 	void push_back(class declblock*);
 	int accept(Visitor* v){return v->visit(this);};
 };
@@ -186,10 +188,11 @@ public:
 
 class declblock:public astNode{
 public:
-	string dataType; /* Field declaration can have datatype and vaariables */
+	string dataType; /* Field declaration can have datatype and variables */
 	vector<class Var*> var_list;
 public:
 	declblock(class Vars*);
+	Value* codegen();
 	vector<class Var*> getVarsList();
 	int accept(Visitor* v){return v->visit(this);};
 };
@@ -236,6 +239,7 @@ public:
 	void push_back(class codeblock*);
 	void push_back(class codeblock*, string);
 	int accept(Visitor* v){return v->visit(this);};
+	Value* codegen();
 };
 
 class codeblock:public astNode{
@@ -245,9 +249,8 @@ public:
 	string label;
 	codeblock();
 	int accept(Visitor* v){return v->visit(this);};
+	virtual Value* codegen(){}
 };
-
-
 
 class Assign:public codeblock{
 public:
@@ -257,6 +260,7 @@ public:
 public:
 	Assign(class last*, string, class Expr*);
 	int accept(Visitor* v){return v->visit(this);};
+	Value* codegen();
 };
 
 
@@ -275,6 +279,7 @@ public:
 	Expr(){}
 	Expr(string, int);
 	int accept(Visitor* v){return v->visit(this);};
+	Value* codegen();
 };
 
 
@@ -287,6 +292,7 @@ public:
   ifStmt(string,class boolExpr*,class codeblocks*);
   ifStmt(string,class boolExpr*,class codeblocks*,class codeblocks*);
   int accept(Visitor* v){return v->visit(this);};
+  Value* codegen();	
 };
 
 class whileStmt:public codeblock{
@@ -296,6 +302,7 @@ public:
 public:
   whileStmt(class boolExpr*,class codeblocks*);
   int accept(Visitor* v){return v->visit(this);};
+  Value* codegen();
 };
 
 class gotoStmt:public codeblock{
@@ -322,6 +329,7 @@ public:
   forStmt(string, class Expr*, class unitClass*, class codeblocks*);
   forStmt(string, class Expr*, class unitClass*, class unitClass*, class codeblocks*);
   int accept(Visitor* v){return v->visit(this);};
+  Value* codegen();
 };
 
 
@@ -368,6 +376,7 @@ public:
   boolExpr(string, class Expr*,class OperandType*,class Expr*);
   boolExpr(string, class boolExpr*,string,class boolExpr*);
   int accept(Visitor* v){return v->visit(this);};
+  Value* codegen();
 };
 
 
@@ -383,6 +392,7 @@ public:
 	bool is_array(); /* tells if its array or not */
 	class Expr* getExpr();
 	int accept(Visitor* v){return v->visit(this);};
+	Value* codegen();
 };
 
 
@@ -394,4 +404,5 @@ public:
 public:
 	binExpr(class Expr*, string, class Expr*);
 	 int accept(Visitor* v){return v->visit(this);return v->visit(this);};
+	 Value* codegen();
 };
