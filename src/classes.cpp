@@ -21,7 +21,7 @@ static IRBuilder<> Builder(Context);
 static std::map<std::string, llvm::AllocaInst *> NamedValues;
 static FunctionPassManager *TheFPM;
 FunctionType *FT = llvm::FunctionType::get(Builder.getVoidTy(), false);
-Function *F = llvm::Function::Create(FT, Function::ExternalLinkage, "codes", TheModule);
+Function *F = llvm::Function::Create(FT, Function::ExternalLinkage, "main", TheModule);
 
 
 /* Usefull Functions */
@@ -138,6 +138,7 @@ string Var::getName(){
 
 
 codeblock::codeblock(){
+  this->label = "";
 }
 
 codeblocks::codeblocks(){
@@ -197,6 +198,7 @@ binExpr::binExpr(class Expr* lhs, string opr, class Expr* rhs){
 
 
 last::last(string var, string last_type, class Expr* expr){
+
   this->var = var;
   this->last_type = last_type;
   this->expr = expr;
@@ -661,7 +663,7 @@ Value* declblocks::codegen(){
     decl_list[i]->codegen();
     /* code */
   }
-  Value* v = ConstantInt::get(getGlobalContext(), APInt(32,500));
+  Value* v = ConstantInt::get(getGlobalContext(), APInt(32,1));
   return v;
 }
 
@@ -671,14 +673,29 @@ Value* declblock::codegen(){
     class Var* var = var_list[i];
     Type* ty = Type::getInt32Ty(Context);
     if(var->declType=="Normal"){
-      PointerType* ptrTy = PointerType::get(ty,0);
-      GlobalVariable* gv = new GlobalVariable(*TheModule,ptrTy,false,GlobalValue::ExternalLinkage,0,var->getName());
+     TheModule->getOrInsertGlobal(var->name,Builder.getInt32Ty());
+     PointerType* ptrTy = PointerType::get(ty,0);
+     GlobalVariable* gv = TheModule->getNamedGlobal(var->name);
+     gv->setLinkage(GlobalValue::CommonLinkage);
+     ConstantInt* const_int_val = ConstantInt::get(Context, APInt(32,0));
+     gv->setInitializer(const_int_val);
     }
+    
     else if(var->declType=="NormalInit"){
-      PointerType* ptrTy = PointerType::get(ty,0);
-      Constant* vv = ConstantInt::get(getGlobalContext(), APInt(32,(var->init_val)));
-      GlobalVariable* gv = new GlobalVariable(*TheModule,ptrTy,false,GlobalValue::ExternalLinkage,vv,var->getName());
+     TheModule->getOrInsertGlobal(var->name,Builder.getInt32Ty());
+     PointerType* ptrTy = PointerType::get(ty,0);
+     GlobalVariable* gv = TheModule->getNamedGlobal(var->name);
+     gv->setLinkage(GlobalValue::CommonLinkage);
+     ConstantInt* const_int_val = ConstantInt::get(Context, APInt(32,var->init_val));
+     gv->setInitializer(const_int_val);
     }
+    else if(var->declType=="Array"){
+      ArrayType* arrType= ArrayType::get(ty,var->length);
+      PointerType* PointerTy_1 = PointerType::get(ArrayType::get(ty,var->length),0);
+      GlobalVariable* gv = new GlobalVariable(*TheModule,arrType,false,GlobalValue::ExternalLinkage,0,var->getName());
+      gv->setInitializer(ConstantAggregateZero::get(arrType));
+    }
+
   }
   Value* v = ConstantInt::get(getGlobalContext(), APInt(32,100));
   return v;
@@ -690,15 +707,24 @@ Value* program::codegen(){
   BasicBlock *BB = BasicBlock::Create(getGlobalContext(), "entry", F);
   Builder.SetInsertPoint(BB);
   codes->codegen();
+  Builder.CreateRetVoid();
   return v;
 } 
 
 Value* codeblocks::codegen(){
-  Value *v = ConstantInt::get(getGlobalContext(), APInt(32,1000));
+  Value *v = ConstantInt::get(getGlobalContext(), APInt(32,1));
   int sz = code_list.size();
   for (int i = 0; i < sz; ++i)
   {
-    code_list[i]->codegen();
+    // cout<<"label is:"<<code_list[i]->getlabel()<<"\n";
+    if(false){
+      // BasicBlock *BB = BasicBlock::Create(getGlobalContext(), "label", F);
+      // Builder.SetInsertPoint(BB);
+      // code_list[i]->codegen();
+    }
+    else {
+      code_list[i]->codegen();
+    }
   }
   return v;
 }
@@ -727,14 +753,15 @@ Value* Expr::codegen(){
   Value* v = ConstantInt::get(getGlobalContext(), llvm::APInt(32,0));
   if(expr_type=="num"){
     // cout<<"number is "<<number<<"\n";
-    v = ConstantInt::get(getGlobalContext(), llvm::APInt(32,number));
+    return ConstantInt::get(getGlobalContext(), llvm::APInt(32,number));
   }
   else if(expr_type=="last"){
-    // v = Builder.CreateLoad(v);
-    v = lastVar->codegen();
+    cout<<"yes in last!! with variable = "<<lastVar->var<<"with type= "<<lastVar->last_type<<"\n";
+    // return Builder.CreateLoad(v);
+    return lastVar->codegen();
   }
   else if(expr_type=="expr"){
-    v = binexpr->codegen();
+    return binexpr->codegen();
   }
   return v;
 }
@@ -751,6 +778,15 @@ Value* binExpr::codegen(){
   if(rhs->expr_type == "last"){
     right = Builder.CreateLoad(right);
   }
+  if(left == 0){
+    errors++;
+    return reportError::ErrorV("Error in left operand of " + opr);
+  }
+  else if(right == 0){
+    errors++;
+    return reportError::ErrorV("Error in right operand of " + opr);
+  }
+
   if(opr=="+"){
     v = Builder.CreateAdd(left,right,"addtmp");
   }
@@ -786,7 +822,6 @@ Value* binExpr::codegen(){
   }
   return v;
 }
-
 
 Value* ifStmt::codegen(){
   Value* v = ConstantInt::get(getGlobalContext(), llvm::APInt(32,0));
@@ -922,11 +957,37 @@ Value* forStmt::codegen(){
 }
 
 Value* last::codegen(){
-  llvm::Value *v = ConstantInt::get(getGlobalContext(), APInt(32,1));
-  if(last_type=="Normal"){
-    v = TheModule->getGlobalVariable(var);  
+  llvm::Value *v = TheModule->getNamedGlobal(var);  
+  if(v==0){
+    errors++;
+    return reportError::ErrorV("Unknown Variable name " + var);
   }
-  return v;
+  if(last_type=="Normal"){
+    return v;
+  }
+  cout<<"in arrrr, var: "<<var<<"\n";
+  v = TheModule->getNamedGlobal(var); 
+  Value* index = expr->codegen();
+  if(expr->expr_type == "last"){
+    // index = TheModule->getNamedGlobal(index); 
+    index = Builder.CreateLoad(index);
+    cout<<"index created hafjkdaf\n";
+  }
+  cout<<"before index"<<"\n";
+  if(index==0){
+    errors++;
+    return reportError::ErrorV("Invalid array index");
+  }
+  cout<<"after index1"<<"\n";
+  vector<Value*> array_index;
+  cout<<"after index2"<<"\n";
+  array_index.push_back(Builder.getInt32(0));
+  cout<<"after index3"<<"\n";
+  array_index.push_back(index);
+  cout<<"after index4"<<"\n";
+  v = Builder.CreateGEP(v, array_index, var+"_Index");
+  cout<<"after index5"<<"\n";
+  return v;  
 }
 
 
@@ -944,5 +1005,72 @@ Value* whileStmt::codegen(){
   Builder.CreateCondBr(endcondval, loopBB, afterBB);
   BasicBlock *loopEndBlock = Builder.GetInsertBlock();
   Builder.SetInsertPoint(afterBB);
+  return v;  
+}
+
+// Value* printStmt::codegen(){
+
+//   llvm::Value *toprint = builder.CreateGlobalStringPtr();
+// }
+
+Value* gotoStmt::codegen(){
+  llvm::Value *v = ConstantInt::get(getGlobalContext(), APInt(32,0));
+  // if(type=="uncond"){
+  //   BasicBlock* labelBB = BasicBlock::Create(getGlobalContext(),"label",F);
+  //   Builder.CreateBr(labelBB);
+  //   // Builder.SetInsertPoint(labelBB);
+  // }
+  // else{
+  //   // BasicBlock* labelBB = BasicBlock::Create(getGlobalContext(),"label",F);
+  //   Builder.CreateBr(labelBB);
+  //   // Builder.SetInsertPoint(labelBB);
+  // }
+  return v;
+}
+
+
+Value* printStmt::codegen(){
+  llvm::Value *v = ConstantInt::get(getGlobalContext(), APInt(32,0));
+  if(type==1){
+      int sz = outs.size();
+      llvm::Value *helloWorld;
+      llvm::Constant *putsFunc;
+      for(int i = 0; i < sz; i++){
+        if(outs[i]->type==1){
+          helloWorld = Builder.CreateGlobalStringPtr(string(outs[i]->toprint));
+         
+          std::vector<llvm::Type *> putsArgs;
+          putsArgs.push_back(Builder.getInt8Ty()->getPointerTo());
+          llvm::ArrayRef<llvm::Type*>  argsRef(putsArgs);
+         
+          llvm::FunctionType *putsType = 
+          llvm::FunctionType::get(Builder.getInt32Ty(), argsRef, false);
+          putsFunc = TheModule->getOrInsertFunction("puts", putsType);
+        }
+        else if(outs[i]->type==2){
+          helloWorld = Builder.CreateGlobalStringPtr(to_string(outs[i]->num));
+          // helloWorld = TheModule->getGlobalVariable()
+          std::vector<llvm::Type *> putsArgs;
+          putsArgs.push_back(Builder.getInt8Ty()->getPointerTo());
+          llvm::ArrayRef<llvm::Type*>  argsRef(putsArgs);
+         
+          llvm::FunctionType *putsType = 
+          llvm::FunctionType::get(Builder.getInt32Ty(), argsRef, false);
+          putsFunc = TheModule->getOrInsertFunction("puts", putsType);
+        }
+        else{
+          helloWorld = TheModule->getGlobalVariable(outs[i]->lastval->var);
+          std::vector<llvm::Type *> putsArgs;
+          putsArgs.push_back(Builder.getInt8Ty()->getPointerTo());
+          llvm::ArrayRef<llvm::Type*>  argsRef(putsArgs);
+         
+          llvm::FunctionType *putsType = 
+          llvm::FunctionType::get(Builder.getInt32Ty(), argsRef, false);
+          putsFunc = TheModule->getOrInsertFunction("puts", putsType);
+
+        }
+        Builder.CreateCall(putsFunc, helloWorld);
+    }
+  }
   return v;  
 }

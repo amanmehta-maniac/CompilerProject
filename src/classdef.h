@@ -133,6 +133,14 @@ public:
 
 };
 
+class reportError{
+    public:
+        static llvm::Value* ErrorV(string str) {
+            cout<<str<<endl;
+            return 0;
+        }
+};
+
 
 
 class astNode{
@@ -203,6 +211,7 @@ public:
 	vector<class Var*> vars_list;
 	int cnt;
 public:
+	
 	Vars(){}
 	void push_back(class Var*);
 	vector<class Var*> getVarsList();
@@ -263,9 +272,6 @@ public:
 	Value* codegen();
 };
 
-
-
-
 class Expr:public astNode{
 public: 
 	class last* lastVar;
@@ -275,9 +281,8 @@ public:
 public:
 	Expr(string,class last*);
 	Expr(string,class binExpr*);
-
-	Expr(){}
 	Expr(string, int);
+	Expr(){}
 	int accept(Visitor* v){return v->visit(this);};
 	Value* codegen();
 };
@@ -316,6 +321,7 @@ public:
   gotoStmt(string,string);
   gotoStmt(string,string,class boolExpr*);
   int accept(Visitor* v){return v->visit(this);};
+  Value* codegen();
 };
 
 class forStmt:public codeblock{
@@ -350,6 +356,7 @@ public:
   printStmt(){}
   void push_back(class content*);
   int accept(Visitor* v){return v->visit(this);};
+  Value* codegen();
 };
 
 class content: public codeblock{

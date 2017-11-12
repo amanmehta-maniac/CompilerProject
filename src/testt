@@ -1,0 +1,6 @@
+declblock{
+	int x,i,j;
+}
+codeblock{
+	x = 0;
+}

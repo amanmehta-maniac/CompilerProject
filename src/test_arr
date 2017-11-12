@@ -1,0 +1,11 @@
+declblock{
+	int x[11],i,y;
+}
+codeblock{
+	i = 10;
+	y = 2;
+	for i=0,11{
+		x[y] = i;
+	}
+}
+

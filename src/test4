@@ -1,0 +1,5 @@
+declblock{
+	int x[11];
+}
+codeblock{
+}

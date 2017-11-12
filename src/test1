@@ -7,11 +7,11 @@ codeblock{
 	for i=j, 99, j{
 		x = x+1;
 	}
-	if i<j{
-		i+=j;
-	}
 	for i=1, 9{
 		x += 1;
+	}
+	if i<j{
+		i+=j;
 	}
 	x += 10;
 }
