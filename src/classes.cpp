@@ -7,6 +7,7 @@ using namespace llvm;
 
 map< string, int > symtab;
 map< string, int > labtab;
+map<string, BasicBlock*> lab_tab;
 bool ERROR = false;
 #define TBS printTabs()
 #define outs(x)cout<<#x<<" is "<<x<<endl
@@ -147,6 +148,7 @@ codeblocks::codeblocks(){
 
 void codeblocks::push_back(class codeblock* code){
   code_list.push_back(code);
+  code->label = "NULL";
   cnt++;
 }
 
@@ -680,7 +682,7 @@ Value* declblock::codegen(){
      ConstantInt* const_int_val = ConstantInt::get(Context, APInt(32,0));
      gv->setInitializer(const_int_val);
     }
-    
+
     else if(var->declType=="NormalInit"){
      TheModule->getOrInsertGlobal(var->name,Builder.getInt32Ty());
      PointerType* ptrTy = PointerType::get(ty,0);
@@ -693,11 +695,12 @@ Value* declblock::codegen(){
       ArrayType* arrType= ArrayType::get(ty,var->length);
       PointerType* PointerTy_1 = PointerType::get(ArrayType::get(ty,var->length),0);
       GlobalVariable* gv = new GlobalVariable(*TheModule,arrType,false,GlobalValue::ExternalLinkage,0,var->getName());
+      gv->setLinkage(GlobalValue::CommonLinkage);
       gv->setInitializer(ConstantAggregateZero::get(arrType));
     }
 
   }
-  Value* v = ConstantInt::get(getGlobalContext(), APInt(32,100));
+  Value* v = ConstantInt::get(getGlobalContext(), APInt(32,1));
   return v;
 }
 
@@ -716,14 +719,15 @@ Value* codeblocks::codegen(){
   int sz = code_list.size();
   for (int i = 0; i < sz; ++i)
   {
-    // cout<<"label is:"<<code_list[i]->getlabel()<<"\n";
-    if(false){
-      // BasicBlock *BB = BasicBlock::Create(getGlobalContext(), "label", F);
-      // Builder.SetInsertPoint(BB);
-      // code_list[i]->codegen();
+    if(code_list[i]->label != "NULL"){
+      BasicBlock *BB = BasicBlock::Create(getGlobalContext(),code_list[i]->label, F);
+      Builder.SetInsertPoint(BB);
+      lab_tab[code_list[i]->label]= BB;
+      code_list[i]->codegen();
     }
     else {
       code_list[i]->codegen();
+
     }
   }
   return v;
@@ -799,49 +803,31 @@ Value* binExpr::codegen(){
   else if (opr == "/"){
     v = Builder.CreateUDiv(left,right,"divtmp");
   }
-  else if (opr == "=="){
-    v = Builder.CreateICmpEQ(left,right,"equalcomparetmp");
-  }
-  else if (opr == "!="){
-    v = Builder.CreateICmpNE(left,right,"notequalcomparetmp");
-  }
-  else if (opr == "<="){
-    v = Builder.CreateICmpULE(left,right,"lecomparetmp");
-  }
-  else if (opr == ">="){
-    v = Builder.CreateICmpUGE(left,right,"gecomparetmp");
-  }
-  else if (opr == ">"){
-    v = Builder.CreateICmpUGT(left,right,"gtcomparetmp");
-  }
-  else if (opr == "<"){
-    v = Builder.CreateICmpULT(left,right,"ltcomparetmp");
-  }
-  else if(opr == "%"){
-    v = Builder.CreateURem(left,right,"modtmp");
-  }
   return v;
 }
 
 Value* ifStmt::codegen(){
-  Value* v = ConstantInt::get(getGlobalContext(), llvm::APInt(32,0));
+
+  Value* v = ConstantInt::get(getGlobalContext(), llvm::APInt(32,2));
+  Value* v2 = ConstantInt::get(getGlobalContext(), llvm::APInt(32,2));
   Value* condi = cond->codegen();
-  Function* TheFunction = F;
-  BasicBlock *ifBlock = BasicBlock::Create(Context, "if", TheFunction);
-  BasicBlock *elseBlock = BasicBlock::Create(Context, "else");
-  BasicBlock *nextBlock = BasicBlock::Create(Context, "ifcont");
+  BasicBlock *ifBlock = BasicBlock::Create(Context, "if", F);
+  BasicBlock *elseBlock = BasicBlock::Create(Context, "else",F);
+  BasicBlock *nextBlock = BasicBlock::Create(Context, "ifcont",F);
   Builder.CreateCondBr(condi, ifBlock, elseBlock);
   Builder.SetInsertPoint(ifBlock);
+  // Builder.CreateAdd(v,v2,"PPPPP");
+  // Builder.CreateSub(v,v2,"QQQQ");
   Value* ifval  = if_part->codegen();
   if(ifval == 0){
-    return 0;
+    return v;
   }
 
   Builder.CreateBr(nextBlock);
-  ifBlock = Builder.GetInsertBlock();
+  // ifBlock = Builder.GetInsertBlock();
 
   // ifBlock = 
-  TheFunction->getBasicBlockList().push_back(elseBlock);
+  F->getBasicBlockList().push_back(elseBlock);
   Builder.SetInsertPoint(elseBlock);
   Value* elseval;
   // cout<<"type is: "<<type<<"\n";
@@ -849,47 +835,43 @@ Value* ifStmt::codegen(){
   {
     elseval = else_part->codegen();
     if(elseval == 0){
-      return 0;
+      return v;
     }
   }
-  TheFunction->getBasicBlockList().push_back(nextBlock);  
-  // unsigned PhiSize = 2;
   Builder.CreateBr(nextBlock);
+  F->getBasicBlockList().push_back(nextBlock);  
+  // unsigned PhiSize = 2;
   // elseBlock = Builder.GetInsertBlock();
   Builder.SetInsertPoint(nextBlock);
   // PHINode *phi = Builder.CreatePHI(Type::getInt32Ty(getGlobalContext()),PhiSize,"iftmp");
   // phi->addIncoming(ifval,ifBlock);
   // phi->addIncoming(elseval,elseBlock);
-  Value *V = ConstantInt::get(getGlobalContext(), APInt(32,0));
-  return V;
+  return elseval;
 }
 
 Value* boolExpr::codegen(){
-  Value* v = ConstantInt::get(getGlobalContext(), llvm::APInt(32,0));
-  // cout<<"in boolexpr\n";
+  Value* v;
   if(boolType=="expr"){
-  // cout<<"in boolexpr2\n";
     Value* lhs = expr1->codegen();
     Value* rhs = expr2->codegen();
     string opr = oper_type->op;
     if (opr == "<"){
-      // cout<<"in boolexpr3\n";
-      return Builder.CreateICmpULT(lhs,rhs,"ltcomparetmp");
+      v =  Builder.CreateICmpULT(lhs,rhs,"ltcomparetmp");
     }
     else if (opr == ">"){
-      return Builder.CreateICmpUGT(lhs,rhs,"gtcomparetmp");
+      v =  Builder.CreateICmpUGT(lhs,rhs,"gtcomparetmp");
     }
     else if (opr == "<="){
-      return Builder.CreateICmpULE(lhs,rhs,"lecomparetmp");
+      v =  Builder.CreateICmpULE(lhs,rhs,"lecomparetmp");
     }
     else if (opr == ">="){
-      return Builder.CreateICmpUGE(lhs,rhs,"gecomparetmp");
+      v =  Builder.CreateICmpUGE(lhs,rhs,"gecomparetmp");
     }
     else if (opr == "=="){
-      return Builder.CreateICmpEQ(lhs,rhs,"equalcomparetmp");
+      v =  Builder.CreateICmpEQ(lhs,rhs,"equalcomparetmp");
     }
     else if (opr == "!="){
-      return Builder.CreateICmpNE(lhs,rhs,"notequalcomparetmp");
+      v =  Builder.CreateICmpNE(lhs,rhs,"notequalcomparetmp");
     }  
   }
   return v;
@@ -900,10 +882,6 @@ Value* forStmt::codegen(){
   Value* v = ConstantInt::get(getGlobalContext(), llvm::APInt(32,0));
   Value* initval = initial->codegen();
 
-  // v = TheModule->getGlobalVariable(i);
-
-  // Builder.CreateStore(initval, v);
-  BasicBlock* preheaderBB = Builder.GetInsertBlock();
 
   BasicBlock* loopBB = BasicBlock::Create(getGlobalContext(),"loop",F);
   BasicBlock *afterBB = BasicBlock::Create(getGlobalContext(), "afterloop", F);
@@ -913,9 +891,10 @@ Value* forStmt::codegen(){
     endcondval = ConstantInt::get(getGlobalContext(), llvm::APInt(32,endcond->value));
   }
   else{
-    endcondval = TheModule->getGlobalVariable(endcond->name);  
+    endcondval = TheModule->getNamedGlobal(endcond->name);  
   }
   endcondval = Builder.CreateICmpULT(initval,endcondval,"ltcomparetmp");
+  BasicBlock* preheaderBB = Builder.GetInsertBlock();
 
   Builder.CreateCondBr(endcondval, loopBB, afterBB);
 
@@ -932,7 +911,7 @@ Value* forStmt::codegen(){
       jump = ConstantInt::get(Type::getInt32Ty(getGlobalContext()), incval->value);
     }
     else{
-      jump = TheModule->getGlobalVariable(incval->name);  
+      jump = TheModule->getNamedGlobal(incval->name);  
     }
   }
   else{
@@ -943,7 +922,7 @@ Value* forStmt::codegen(){
     endcondval = ConstantInt::get(getGlobalContext(), llvm::APInt(32,endcond->value));
   }
   else{
-    endcondval = TheModule->getGlobalVariable(endcond->name);  
+    endcondval = TheModule->getNamedGlobal(endcond->name);  
   }
   endcondval = Builder.CreateICmpULT(nextval,endcondval,"ltcomparetmp");
   BasicBlock *loopEndBlock = Builder.GetInsertBlock();
@@ -963,6 +942,7 @@ Value* last::codegen(){
     return reportError::ErrorV("Unknown Variable name " + var);
   }
   if(last_type=="Normal"){
+    cout<<"hurray normal\n";
     return v;
   }
   cout<<"in arrrr, var: "<<var<<"\n";
@@ -1015,19 +995,17 @@ Value* whileStmt::codegen(){
 
 Value* gotoStmt::codegen(){
   llvm::Value *v = ConstantInt::get(getGlobalContext(), APInt(32,0));
-  // if(type=="uncond"){
-  //   BasicBlock* labelBB = BasicBlock::Create(getGlobalContext(),"label",F);
-  //   Builder.CreateBr(labelBB);
-  //   // Builder.SetInsertPoint(labelBB);
-  // }
-  // else{
-  //   // BasicBlock* labelBB = BasicBlock::Create(getGlobalContext(),"label",F);
-  //   Builder.CreateBr(labelBB);
-  //   // Builder.SetInsertPoint(labelBB);
-  // }
+  BasicBlock* labelBB = BasicBlock::Create(getGlobalContext(),"aftergoto",F);
+  if(type=="uncond"){
+    Builder.CreateBr(lab_tab[label]);
+  }
+  else{
+    Value* res = cond->codegen();
+    Builder.CreateCondBr(res,lab_tab[label],labelBB);
+  }
+  Builder.SetInsertPoint(labelBB);  
   return v;
 }
-
 
 Value* printStmt::codegen(){
   llvm::Value *v = ConstantInt::get(getGlobalContext(), APInt(32,0));
@@ -1049,7 +1027,7 @@ Value* printStmt::codegen(){
         }
         else if(outs[i]->type==2){
           helloWorld = Builder.CreateGlobalStringPtr(to_string(outs[i]->num));
-          // helloWorld = TheModule->getGlobalVariable()
+          // helloWorld = TheModule->getNamedGlobal()
           std::vector<llvm::Type *> putsArgs;
           putsArgs.push_back(Builder.getInt8Ty()->getPointerTo());
           llvm::ArrayRef<llvm::Type*>  argsRef(putsArgs);
@@ -1059,7 +1037,7 @@ Value* printStmt::codegen(){
           putsFunc = TheModule->getOrInsertFunction("puts", putsType);
         }
         else{
-          helloWorld = TheModule->getGlobalVariable(outs[i]->lastval->var);
+          helloWorld = TheModule->getNamedGlobal(outs[i]->lastval->var);
           std::vector<llvm::Type *> putsArgs;
           putsArgs.push_back(Builder.getInt8Ty()->getPointerTo());
           llvm::ArrayRef<llvm::Type*>  argsRef(putsArgs);
