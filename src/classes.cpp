@@ -801,7 +801,7 @@ Value* ifStmt::codegen(){
   if(ifval == 0){
     return 0;
   }
-  
+
   Builder.CreateBr(nextBlock);
   ifBlock = Builder.GetInsertBlock();
 
@@ -871,7 +871,19 @@ Value* forStmt::codegen(){
   BasicBlock* preheaderBB = Builder.GetInsertBlock();
 
   BasicBlock* loopBB = BasicBlock::Create(getGlobalContext(),"loop",F);
-  Builder.CreateBr(loopBB);
+  BasicBlock *afterBB = BasicBlock::Create(getGlobalContext(), "afterloop", F);
+  // Builder.CreateBr(loopBB);
+  Value* endcondval;
+  if(endcond->type=="num") {
+    endcondval = ConstantInt::get(getGlobalContext(), llvm::APInt(32,endcond->value));
+  }
+  else{
+    endcondval = TheModule->getGlobalVariable(endcond->name);  
+  }
+  endcondval = Builder.CreateICmpULT(initval,endcondval,"ltcomparetmp");
+
+  Builder.CreateCondBr(endcondval, loopBB, afterBB);
+
   Builder.SetInsertPoint(loopBB);
   PHINode* phi = Builder.CreatePHI(Type::getInt32Ty(getGlobalContext()), 2, i.c_str());
   phi->addIncoming(initval,preheaderBB);
@@ -892,7 +904,6 @@ Value* forStmt::codegen(){
     jump = ConstantInt::get(Type::getInt32Ty(getGlobalContext()), 1);
   }
   Value* nextval = Builder.CreateAdd(phi, jump, "nextval");
-  Value* endcondval;
   if(endcond->type=="num") {
     endcondval = ConstantInt::get(getGlobalContext(), llvm::APInt(32,endcond->value));
   }
@@ -901,7 +912,6 @@ Value* forStmt::codegen(){
   }
   endcondval = Builder.CreateICmpULT(nextval,endcondval,"ltcomparetmp");
   BasicBlock *loopEndBlock = Builder.GetInsertBlock();
-  BasicBlock *afterBB = BasicBlock::Create(getGlobalContext(), "afterloop", F);
   Builder.CreateCondBr(endcondval, loopBB, afterBB);
   Builder.SetInsertPoint(afterBB);
   phi->addIncoming(nextval, loopEndBlock);
@@ -922,12 +932,17 @@ Value* last::codegen(){
 
 Value* whileStmt::codegen(){
   llvm::Value *v = ConstantInt::get(getGlobalContext(), APInt(32,1));
+  Value* endcondval = cond->codegen();
   BasicBlock* loopBB = BasicBlock::Create(getGlobalContext(),"loop",F);
-  Builder.CreateBr(loopBB);
+  BasicBlock *afterBB = BasicBlock::Create(getGlobalContext(), "afterloop", F);
+  Builder.CreateCondBr(endcondval, loopBB, afterBB);
   Builder.SetInsertPoint(loopBB);
+  // Builder.CreateBr(loopBB);
   if(stmts->codegen()==0){
     return 0;
   }
-
+  Builder.CreateCondBr(endcondval, loopBB, afterBB);
+  BasicBlock *loopEndBlock = Builder.GetInsertBlock();
+  Builder.SetInsertPoint(afterBB);
   return v;  
 }
