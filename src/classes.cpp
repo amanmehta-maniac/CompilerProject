@@ -689,7 +689,7 @@ Value* declblock::codegen(){
     else if(var->declType=="NormalInit"){
      TheModule->getOrInsertGlobal(var->name,Builder.getInt32Ty());
      // PointerType* ptrTy = PointerType::get(ty,0);
-     cout<<"sPPPPP\n";
+     // cout<<"sPPPPP\n";
      GlobalVariable* gv = TheModule->getNamedGlobal(var->name);
      gv->setLinkage(GlobalValue::CommonLinkage);
      ConstantInt* const_int_val = ConstantInt::get(Context, APInt(32,var->init_val));
@@ -723,7 +723,8 @@ Value* codeblocks::codegen(){
   for (int i = 0; i < sz; ++i)
   {
     if(code_list[i]->label != "NULL"){
-      BasicBlock *BB = BasicBlock::Create(getGlobalContext(),code_list[i]->label, F);
+      BasicBlock *BB = BasicBlock::Create(getGlobalContext(),(string)(code_list[i]->label), F);
+      Builder.CreateBr(BB);
       Builder.SetInsertPoint(BB);
       lab_tab[code_list[i]->label]= BB;
       code_list[i]->codegen();
@@ -741,7 +742,7 @@ Value* Assign::codegen(){
   Value* lhsv_register = loc->codegen();
   Value* rhsv = expr->codegen();
   if(expr->expr_type=="last"){
-    cout<<"yep my expr is last type\n";
+    // cout<<"yep my expr is last type\n";
     rhsv = Builder.CreateLoad(rhsv);
   }
   if(opr=="="){
@@ -764,7 +765,7 @@ Value* Expr::codegen(){
     return ConstantInt::get(getGlobalContext(), llvm::APInt(32,number));
   }
   else if(expr_type=="last"){
-    cout<<"yes in last!! with variable = "<<lastVar->var<<"with type= "<<lastVar->last_type<<"\n";
+    // cout<<"yes in last!! with variable = "<<lastVar->var<<"with type= "<<lastVar->last_type<<"\n";
     return lastVar->codegen();
   }
   else if(expr_type=="expr"){
@@ -915,7 +916,7 @@ Value* forStmt::codegen(){
     return 0;
   }
   Value* jump;
-  cout<<"firtpye is: "<<forType<<"\n";
+  // cout<<"firtpye is: "<<forType<<"\n";
   if(forType==2){
     if(incval->type=="num"){
       jump = ConstantInt::get(Type::getInt32Ty(getGlobalContext()), incval->value);
@@ -952,14 +953,14 @@ Value* last::codegen(){
     return reportError::ErrorV("Unknown Variable name " + var);
   }
   if(last_type=="Normal"){
-    cout<<"hurray normal\n";
+    // cout<<"hurray normal\n";
     return v;
   }
   v = TheModule->getNamedGlobal(var); 
   Value* index = expr->codegen();
   if(expr->expr_type == "last"){
     index = Builder.CreateLoad(index);
-    cout<<"index created hafjkdaf\n";
+    // cout<<"index created hafjkdaf\n";
   }
   cout<<"before index"<<"\n";
   if(index==0){
@@ -981,10 +982,10 @@ Value* whileStmt::codegen(){
   BasicBlock *afterBB = BasicBlock::Create(getGlobalContext(), "afterloop", F);
   Builder.CreateCondBr(endcondval, loopBB, afterBB);
   Builder.SetInsertPoint(loopBB);
-  // Builder.CreateBr(loopBB);
   if(stmts->codegen()==0){
     return 0;
   }
+  endcondval = cond->codegen();
   Builder.CreateCondBr(endcondval, loopBB, afterBB);
   BasicBlock *loopEndBlock = Builder.GetInsertBlock();
   Builder.SetInsertPoint(afterBB);
@@ -1054,14 +1055,14 @@ Value* printStmt::codegen(){
     // }
   }
   else {
-    cout<<"typeis : "<<type<<"\n";
+    // cout<<"typeis : "<<type<<"\n";
     std::vector<Value *> arguments;
     int sz = outs.size();
     Value *v,*val,*to_print;
     for(int i = 0; i < sz; i++){
       arguments.clear();
       if(outs[i]->content_type=="last"){
-        cout<<"omg out me aa gaya\n";
+        // cout<<"omg out me aa gaya\n";
         val= Builder.CreateGlobalStringPtr("%d");
         to_print = outs[i]->lastval->codegen();
         to_print = Builder.CreateLoad(to_print);
@@ -1084,7 +1085,7 @@ Value* printStmt::codegen(){
     }
     arguments.clear();
     if(type == 2){
-      cout<<"shajsdgsahgidsgsgjkoshk\n";
+      // cout<<"shajsdgsahgidsgsgjkoshk\n";
       val = Builder.CreateGlobalStringPtr("%s");
       to_print = Builder.CreateGlobalStringPtr("\n");
       arguments.push_back(val);
