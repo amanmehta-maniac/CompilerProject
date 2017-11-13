@@ -851,9 +851,16 @@ Value* ifStmt::codegen(){
 
 Value* boolExpr::codegen(){
   Value* v;
-  if(boolType=="expr"){
+  if(boolType=="expr")
+  {
     Value* lhs = expr1->codegen();
     Value* rhs = expr2->codegen();
+    if(expr1->expr_type == "last"){
+      lhs = Builder.CreateLoad(lhs);
+    }
+    if(expr2->expr_type == "last"){
+      rhs = Builder.CreateLoad(rhs);
+    }
     string opr = oper_type->op;
     if (opr == "<"){
       v =  Builder.CreateICmpULT(lhs,rhs,"ltcomparetmp");
@@ -943,6 +950,7 @@ Value* last::codegen(){
   }
   if(last_type=="Normal"){
     cout<<"hurray normal\n";
+    // v = Builder.CreateLoad(v);
     return v;
   }
   // cout<<"in arrrr, var: "<<var<<"\n";
