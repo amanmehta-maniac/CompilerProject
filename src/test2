@@ -1,11 +1,6 @@
 declblock{
-	int x,i,j;
+	int x,i,j[100];
 }
 codeblock{
-	x = 0;
-	j = 3;
-	while x<10{
-		x+=1;
-	}
-	j = 5;
+	j[2] = 2;	
 }

@@ -2,7 +2,8 @@ declblock{
 	int x,i,j;
 }
 codeblock{
-	x = 100;
-	i = x+1;
-		
+	i = 100;
+L1: i = i+1;		
+	x = 199;
+	goto L1 if i<120;
 }
