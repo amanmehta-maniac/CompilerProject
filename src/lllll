@@ -1,0 +1,86 @@
+; ModuleID = 'Decaf compiler jit'
+
+@i = common global i32 0
+@j = common global i32 0
+@arr = common global [100 x i32] zeroinitializer
+@temp = common global i32 0
+@next = common global i32 0
+@0 = private unnamed_addr constant [20 x i8] c"Original array is: \00"
+@1 = private unnamed_addr constant [3 x i8] c"%s\00"
+@2 = private unnamed_addr constant [3 x i8] c"%s\00"
+@3 = private unnamed_addr constant [2 x i8] c"\0A\00"
+
+define void @main() {
+entry:
+  store i32 3, i32* getelementptr inbounds ([100 x i32], [100 x i32]* @arr, i32 0, i32 0)
+  store i32 2, i32* getelementptr inbounds ([100 x i32], [100 x i32]* @arr, i32 0, i32 1)
+  store i32 5, i32* getelementptr inbounds ([100 x i32], [100 x i32]* @arr, i32 0, i32 2)
+  store i32 7, i32* getelementptr inbounds ([100 x i32], [100 x i32]* @arr, i32 0, i32 3)
+  store i32 1, i32* getelementptr inbounds ([100 x i32], [100 x i32]* @arr, i32 0, i32 4)
+  store i32 0, i32* @i
+  %printfCall = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @1, i32 0, i32 0), i8* getelementptr inbounds ([20 x i8], [20 x i8]* @0, i32 0, i32 0))
+  %printfCall1 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @2, i32 0, i32 0), i8* getelementptr inbounds ([2 x i8], [2 x i8]* @3, i32 0, i32 0))
+  %0 = load i32, i32* @i
+  %ltcomparetmp = icmp ult i32 %0, 5
+  br i1 %ltcomparetmp, label %loop, label %afterloop
+
+loop:                                             ; preds = %afterloop4, %entry
+  store i32 0, i32* @j
+  %1 = load i32, i32* @j
+  %ltcomparetmp2 = icmp ult i32 %1, 4
+  br i1 %ltcomparetmp2, label %loop3, label %afterloop4
+
+afterloop:                                        ; preds = %afterloop4, %entry
+  ret void
+
+loop3:                                            ; preds = %ifcont12, %loop
+  %2 = load i32, i32* @j
+  %addtmp = add i32 %2, 1
+  store i32 %addtmp, i32* @next
+  %3 = load i32, i32* @j
+  %arr_Index = getelementptr [100 x i32], [100 x i32]* @arr, i32 0, i32 %3
+  %4 = load i32, i32* @next
+  %arr_Index5 = getelementptr [100 x i32], [100 x i32]* @arr, i32 0, i32 %4
+  %5 = load i32, i32* %arr_Index
+  %6 = load i32, i32* %arr_Index5
+  %ltcomparetmp6 = icmp ult i32 %5, %6
+  br i1 %ltcomparetmp6, label %if, label %else11
+
+afterloop4:                                       ; preds = %ifcont12, %loop
+  %7 = load i32, i32* @i
+  %addtmp15 = add i32 %7, 1
+  store i32 %addtmp15, i32* @i
+  %8 = load i32, i32* @i
+  %ltcomparetmp16 = icmp ult i32 %8, 5
+  br i1 %ltcomparetmp16, label %loop, label %afterloop
+
+if:                                               ; preds = %loop3
+  %9 = load i32, i32* @j
+  %arr_Index7 = getelementptr [100 x i32], [100 x i32]* @arr, i32 0, i32 %9
+  %10 = load i32, i32* %arr_Index7
+  store i32 %10, i32* @temp
+  %11 = load i32, i32* @j
+  %arr_Index8 = getelementptr [100 x i32], [100 x i32]* @arr, i32 0, i32 %11
+  %12 = load i32, i32* @next
+  %arr_Index9 = getelementptr [100 x i32], [100 x i32]* @arr, i32 0, i32 %12
+  %13 = load i32, i32* %arr_Index9
+  store i32 %13, i32* %arr_Index8
+  %14 = load i32, i32* @next
+  %arr_Index10 = getelementptr [100 x i32], [100 x i32]* @arr, i32 0, i32 %14
+  %15 = load i32, i32* @temp
+  store i32 %15, i32* %arr_Index10
+  br label %ifcont12
+
+else11:                                           ; preds = %loop3
+  br label %ifcont12
+
+ifcont12:                                         ; preds = %else11, %if
+  %16 = load i32, i32* @j
+  %addtmp13 = add i32 %16, 1
+  store i32 %addtmp13, i32* @j
+  %17 = load i32, i32* @j
+  %ltcomparetmp14 = icmp ult i32 %17, 4
+  br i1 %ltcomparetmp14, label %loop3, label %afterloop4
+}
+
+declare i32 @printf(i8*, ...)

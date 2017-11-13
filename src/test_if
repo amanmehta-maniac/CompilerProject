@@ -1,0 +1,10 @@
+declblock{
+	int x[2],j;
+}
+codeblock{
+	x[0] = 10;
+	x[1] = 11;
+	j = 0;
+
+	print x[j];
+}

@@ -1,0 +1,27 @@
+; ModuleID = 'Decaf compiler jit'
+
+@x = common global i32 0
+@i = common global i32 0
+@j = common global i32 0
+
+define void @main() {
+entry:
+  store i32 5, i32* @j
+  store i32 3, i32* @i
+  br i1 icmp ult (i32* @i, i32* @j), label %if, label %else1
+
+if:                                               ; preds = %entry
+  %0 = load i32, i32* @j
+  %addtmp = add i32 %0, 1
+  store i32 %addtmp, i32* @j
+  br label %ifcont2
+
+else1:                                            ; preds = %entry
+  br label %ifcont2
+
+ifcont2:                                          ; preds = %else1, %if
+  %1 = load i32, i32* @i
+  %addtmp3 = add i32 %1, 1
+  store i32 %addtmp3, i32* @i
+  ret void
+}

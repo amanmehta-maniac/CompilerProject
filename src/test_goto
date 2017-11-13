@@ -1,0 +1,9 @@
+declblock{
+	int fac;
+}
+codeblock{
+    fac = 1;
+L1: fac = fac+1;
+	goto L1 if fac<10;
+
+}
