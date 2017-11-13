@@ -1,8 +1,12 @@
 declblock{
-	int x[11],i,y=0,z=0,yy;
+	int x[11],i,y=0,z=0,yy,j;
 }
 codeblock{
-	i = 2;
-	x[i] = i*i+2;
+	y = x[2];
+	yy = 3;
+	j = 2;
+	if j>yy{
+		j = 2;
+	}
 }
 

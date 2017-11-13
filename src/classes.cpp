@@ -22,8 +22,9 @@ static IRBuilder<> Builder(Context);
 static std::map<std::string, llvm::AllocaInst *> NamedValues;
 static FunctionPassManager *TheFPM;
 FunctionType *FT = llvm::FunctionType::get(Builder.getVoidTy(), false);
-Function *F = llvm::Function::Create(FT, Function::ExternalLinkage, "main", TheModule);
 
+Function *F = llvm::Function::Create(FT, Function::ExternalLinkage, "main", TheModule);
+Constant *print_func = TheModule->getOrInsertFunction("printf",FunctionType::get(IntegerType::getInt32Ty(Context), PointerType::get(Type::getInt8Ty(Context), 0), true));
 
 /* Usefull Functions */
 
@@ -273,19 +274,22 @@ Assign::Assign(class last* loc, string opr, class Expr* expr){
   this->expr = expr;
 }
 
-content::content(string toprint){
+content::content(string toprint,string content_type){
   this->type=1;
   this->toprint = toprint;
+  this->content_type = content_type;
 }
 
-content::content(int num){
+content::content(int num,string content_type){
   this->type=2;
   this->num = num;
+  this->content_type = content_type;
 }
 
-content::content(class last* lastval){
+content::content(class last* lastval,string content_type){
   this->type=3;
   this->lastval = lastval;
+  this->content_type = content_type;
   // cout<<"lastval: "<<lastval->var;
 }
 
@@ -646,12 +650,11 @@ int Interpreter::visit(class binExpr* e){
 }
 int Interpreter::visit(class content* e){
   Interpreter *it = new Interpreter();
-  if(e->type==1) cout<<e->toprint<<" ";
-  else if(e->type==2) cout<<e->num<<" ";
+  if(e->content_type=="string") cout<<e->toprint<<" ";
+  else if(e->content_type=="num") cout<<e->num<<" ";
   else{
     cout<<e->lastval->accept(it)<<" ";
   }
-
   return 0;
 }
 
@@ -1017,45 +1020,82 @@ Value* gotoStmt::codegen(){
 
 Value* printStmt::codegen(){
   llvm::Value *v = ConstantInt::get(getGlobalContext(), APInt(32,0));
-  if(type==1){
-      int sz = outs.size();
-      llvm::Value *helloWorld;
-      llvm::Constant *putsFunc;
-      for(int i = 0; i < sz; i++){
-        if(outs[i]->type==1){
-          helloWorld = Builder.CreateGlobalStringPtr(string(outs[i]->toprint));
+  if(false){
+    //   int sz = outs.size();
+    //   llvm::Value *helloWorld;
+    //   llvm::Constant *putsFunc;
+    //   for(int i = 0; i < sz; i++){
+    //     if(outs[i]->type==1){
+    //       helloWorld = Builder.CreateGlobalStringPtr(string(outs[i]->toprint));
          
-          std::vector<llvm::Type *> putsArgs;
-          putsArgs.push_back(Builder.getInt8Ty()->getPointerTo());
-          llvm::ArrayRef<llvm::Type*>  argsRef(putsArgs);
+    //       std::vector<llvm::Type *> putsArgs;
+    //       putsArgs.push_back(Builder.getInt8Ty()->getPointerTo());
+    //       llvm::ArrayRef<llvm::Type*>  argsRef(putsArgs);
          
-          llvm::FunctionType *putsType = 
-          llvm::FunctionType::get(Builder.getInt32Ty(), argsRef, false);
-          putsFunc = TheModule->getOrInsertFunction("puts", putsType);
-        }
-        else if(outs[i]->type==2){
-          helloWorld = Builder.CreateGlobalStringPtr(to_string(outs[i]->num));
-          // helloWorld = TheModule->getNamedGlobal()
-          std::vector<llvm::Type *> putsArgs;
-          putsArgs.push_back(Builder.getInt8Ty()->getPointerTo());
-          llvm::ArrayRef<llvm::Type*>  argsRef(putsArgs);
+    //       llvm::FunctionType *putsType = 
+    //       llvm::FunctionType::get(Builder.getInt32Ty(), argsRef, false);
+    //       putsFunc = TheModule->getOrInsertFunction("puts", putsType);
+    //     }
+    //     else if(outs[i]->type==2){
+    //       helloWorld = Builder.CreateGlobalStringPtr(to_string(outs[i]->num));
+    //       // helloWorld = TheModule->getNamedGlobal()
+    //       std::vector<llvm::Type *> putsArgs;
+    //       putsArgs.push_back(Builder.getInt8Ty()->getPointerTo());
+    //       llvm::ArrayRef<llvm::Type*>  argsRef(putsArgs);
          
-          llvm::FunctionType *putsType = 
-          llvm::FunctionType::get(Builder.getInt32Ty(), argsRef, false);
-          putsFunc = TheModule->getOrInsertFunction("puts", putsType);
-        }
-        else{
-          helloWorld = TheModule->getNamedGlobal(outs[i]->lastval->var);
-          std::vector<llvm::Type *> putsArgs;
-          putsArgs.push_back(Builder.getInt8Ty()->getPointerTo());
-          llvm::ArrayRef<llvm::Type*>  argsRef(putsArgs);
+    //       llvm::FunctionType *putsType = 
+    //       llvm::FunctionType::get(Builder.getInt32Ty(), argsRef, false);
+    //       putsFunc = TheModule->getOrInsertFunction("puts", putsType);
+    //     }
+    //     else{
+    //       helloWorld = TheModule->getNamedGlobal(outs[i]->lastval->var);
+    //       std::vector<llvm::Type *> putsArgs;
+    //       putsArgs.push_back(Builder.getInt8Ty()->getPointerTo());
+    //       llvm::ArrayRef<llvm::Type*>  argsRef(putsArgs);
          
-          llvm::FunctionType *putsType = 
-          llvm::FunctionType::get(Builder.getInt32Ty(), argsRef, false);
-          putsFunc = TheModule->getOrInsertFunction("puts", putsType);
+    //       llvm::FunctionType *putsType = 
+    //       llvm::FunctionType::get(Builder.getInt32Ty(), argsRef, false);
+    //       putsFunc = TheModule->getOrInsertFunction("puts", putsType);
 
-        }
-        Builder.CreateCall(putsFunc, helloWorld);
+    //     }
+    //     Builder.CreateCall(putsFunc, helloWorld);
+    // }
+  }
+  else {
+    cout<<"typeis : "<<type<<"\n";
+    std::vector<Value *> arguments;
+    int sz = outs.size();
+    Value *v,*val,*to_print;
+    for(int i = 0; i < sz; i++){
+      arguments.clear();
+      if(outs[i]->content_type=="last"){
+        val= Builder.CreateGlobalStringPtr("%d");
+        to_print = outs[i]->codegen();
+      }
+      else if(outs[i]->content_type=="string"){
+        to_print = Builder.CreateGlobalStringPtr(outs[i]->toprint.substr(1,outs[i]->toprint.size()-2));
+        val = Builder.CreateGlobalStringPtr("%s");
+      }
+      arguments.push_back(val);
+      arguments.push_back(to_print);
+      v = Builder.CreateCall(print_func, arguments, "printfCall");
+      arguments.clear();
+      if(i!=sz-1){
+        val = Builder.CreateGlobalStringPtr("%s");
+        to_print = Builder.CreateGlobalStringPtr(" ");
+        arguments.push_back(val);
+        arguments.push_back(to_print);
+        v =  Builder.CreateCall(print_func, arguments, "printfCall");
+      }
+    }
+    arguments.clear();
+    if(type == 2){
+      cout<<"shajsdgsahgidsgsgjkoshk\n";
+      val = Builder.CreateGlobalStringPtr("%s");
+      to_print = Builder.CreateGlobalStringPtr("\n");
+      arguments.push_back(val);
+      arguments.push_back(to_print);
+      v =  Builder.CreateCall(print_func, arguments, "printfCall");
     }
   }
   return v;  

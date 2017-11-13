@@ -2,6 +2,6 @@ declblock{
 	int x,i,j;
 }
 codeblock{
-	x = 2;	
-	print x;
+	x = 5;
+	println "yo",x;
 }

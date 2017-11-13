@@ -184,9 +184,9 @@ Print: PRINT Contents Content { $$ = $2; $$->type = 1; $$->push_back($3); }
 Contents: { $$ = new printStmt(); }
 	| Contents Content ',' { $$->push_back($2); }
 
-Content	: TOPRINT { $$ = new content($1); }
-	| Last { $$ = new content($1); }
-	| NUMBER { $$ = new content($1); }
+Content	: TOPRINT { $$ = new content($1,"string"); }
+	| Last { $$ = new content($1,"last"); }
+	| NUMBER { $$ = new content($1,"num"); }
 
 
 /*

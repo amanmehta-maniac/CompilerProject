@@ -366,9 +366,10 @@ public:
 	string toprint;
 	int num;
 	int type;
-	content(string);
-	content(class last*);
-	content(int);
+	string content_type;
+	content(string,string);
+	content(class last*,string);
+	content(int,string);
 	int accept(Visitor* v){return v->visit(this);};
 };
 
