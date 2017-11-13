@@ -737,8 +737,10 @@ Value* Assign::codegen(){
   Value* v = ConstantInt::get(getGlobalContext(), APInt(32,1));
   Value* lhsv_register = loc->codegen();
   Value* rhsv = expr->codegen();
-  // Value* lhsv = Builder.CreateLoad(lhsv_register);
-  // cout<<"oohhyeaaa3\n";
+  if(expr->expr_type=="last"){
+    cout<<"yep my expr is last type\n";
+    rhsv = Builder.CreateLoad(rhsv);
+  }
   if(opr=="="){
     rhsv = Builder.CreateStore(rhsv,lhsv_register);
   }
@@ -756,12 +758,10 @@ Value* Assign::codegen(){
 Value* Expr::codegen(){
   Value* v = ConstantInt::get(getGlobalContext(), llvm::APInt(32,0));
   if(expr_type=="num"){
-    // cout<<"number is "<<number<<"\n";
     return ConstantInt::get(getGlobalContext(), llvm::APInt(32,number));
   }
   else if(expr_type=="last"){
     cout<<"yes in last!! with variable = "<<lastVar->var<<"with type= "<<lastVar->last_type<<"\n";
-    // return Builder.CreateLoad(v);
     return lastVar->codegen();
   }
   else if(expr_type=="expr"){
@@ -945,7 +945,7 @@ Value* last::codegen(){
     cout<<"hurray normal\n";
     return v;
   }
-  cout<<"in arrrr, var: "<<var<<"\n";
+  // cout<<"in arrrr, var: "<<var<<"\n";
   v = TheModule->getNamedGlobal(var); 
   Value* index = expr->codegen();
   if(expr->expr_type == "last"){
@@ -958,15 +958,15 @@ Value* last::codegen(){
     errors++;
     return reportError::ErrorV("Invalid array index");
   }
-  cout<<"after index1"<<"\n";
+  // cout<<"after index1"<<"\n";
   vector<Value*> array_index;
-  cout<<"after index2"<<"\n";
+  // cout<<"after index2"<<"\n";
   array_index.push_back(Builder.getInt32(0));
-  cout<<"after index3"<<"\n";
+  // cout<<"after index3"<<"\n";
   array_index.push_back(index);
-  cout<<"after index4"<<"\n";
+  // cout<<"after index4"<<"\n";
   v = Builder.CreateGEP(v, array_index, var+"_Index");
-  cout<<"after index5"<<"\n";
+  // cout<<"after index5"<<"\n";
   return v;  
 }
 
