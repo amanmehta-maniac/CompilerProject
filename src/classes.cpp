@@ -679,7 +679,7 @@ Value* declblock::codegen(){
     Type* ty = Type::getInt32Ty(Context);
     if(var->declType=="Normal"){
      TheModule->getOrInsertGlobal(var->name,Builder.getInt32Ty());
-     PointerType* ptrTy = PointerType::get(ty,0);
+     // PointerType* ptrTy = PointerType::get(ty,0);
      GlobalVariable* gv = TheModule->getNamedGlobal(var->name);
      gv->setLinkage(GlobalValue::CommonLinkage);
      ConstantInt* const_int_val = ConstantInt::get(Context, APInt(32,0));
@@ -688,7 +688,8 @@ Value* declblock::codegen(){
 
     else if(var->declType=="NormalInit"){
      TheModule->getOrInsertGlobal(var->name,Builder.getInt32Ty());
-     PointerType* ptrTy = PointerType::get(ty,0);
+     // PointerType* ptrTy = PointerType::get(ty,0);
+     cout<<"sPPPPP\n";
      GlobalVariable* gv = TheModule->getNamedGlobal(var->name);
      gv->setLinkage(GlobalValue::CommonLinkage);
      ConstantInt* const_int_val = ConstantInt::get(Context, APInt(32,var->init_val));
@@ -696,12 +697,11 @@ Value* declblock::codegen(){
     }
     else if(var->declType=="Array"){
       ArrayType* arrType= ArrayType::get(ty,var->length);
-      PointerType* PointerTy_1 = PointerType::get(ArrayType::get(ty,var->length),0);
-      GlobalVariable* gv = new GlobalVariable(*TheModule,arrType,false,GlobalValue::ExternalLinkage,0,var->getName());
+      // PointerType* PointerTy_1 = PointerType::get(ArrayType::get(ty,var->length),0);
+      GlobalVariable* gv = new GlobalVariable(*TheModule,arrType,false,GlobalValue::ExternalLinkage,0,var->name);
       gv->setLinkage(GlobalValue::CommonLinkage);
       gv->setInitializer(ConstantAggregateZero::get(arrType));
     }
-
   }
   Value* v = ConstantInt::get(getGlobalContext(), APInt(32,1));
   return v;
@@ -953,14 +953,11 @@ Value* last::codegen(){
   }
   if(last_type=="Normal"){
     cout<<"hurray normal\n";
-    // v = Builder.CreateLoad(v);
     return v;
   }
-  // cout<<"in arrrr, var: "<<var<<"\n";
   v = TheModule->getNamedGlobal(var); 
   Value* index = expr->codegen();
   if(expr->expr_type == "last"){
-    // index = TheModule->getNamedGlobal(index); 
     index = Builder.CreateLoad(index);
     cout<<"index created hafjkdaf\n";
   }
@@ -969,15 +966,10 @@ Value* last::codegen(){
     errors++;
     return reportError::ErrorV("Invalid array index");
   }
-  // cout<<"after index1"<<"\n";
   vector<Value*> array_index;
-  // cout<<"after index2"<<"\n";
   array_index.push_back(Builder.getInt32(0));
-  // cout<<"after index3"<<"\n";
   array_index.push_back(index);
-  // cout<<"after index4"<<"\n";
   v = Builder.CreateGEP(v, array_index, var+"_Index");
-  // cout<<"after index5"<<"\n";
   return v;  
 }
 
@@ -1069,8 +1061,10 @@ Value* printStmt::codegen(){
     for(int i = 0; i < sz; i++){
       arguments.clear();
       if(outs[i]->content_type=="last"){
+        cout<<"omg out me aa gaya\n";
         val= Builder.CreateGlobalStringPtr("%d");
-        to_print = outs[i]->codegen();
+        to_print = outs[i]->lastval->codegen();
+        to_print = Builder.CreateLoad(to_print);
       }
       else if(outs[i]->content_type=="string"){
         to_print = Builder.CreateGlobalStringPtr(outs[i]->toprint.substr(1,outs[i]->toprint.size()-2));
